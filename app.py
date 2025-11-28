@@ -1420,4 +1420,4 @@ def api_borrar_pagos():
 
 if __name__ == "__main__":
     print(f"Usando base de datos: {DB_PATH.resolve()}")
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=False)
