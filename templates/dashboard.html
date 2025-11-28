@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D.IEGO · Panel principal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #050411;
+      --bg-soft: #0f1020;
+      --primary: #7b5cff;
+      --primary-soft: #a48cff;
+      --accent: #ff7ac4;
+      --accent-soft: #ffb1df;
+      --card-bg: #121328;
+      --border-soft: #26294a;
+      --text-main: #f7f4ff;
+      --text-soft: #a6a4c9;
+      --radius-xl: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #3a2a7a 0, transparent 55%),
+        radial-gradient(circle at bottom right, #3f1132 0, transparent 55%),
+        var(--bg);
+      color: var(--text-main);
+      padding: 0;
+      margin: 0;
+    }
+
+    .app-shell {
+      width: 100%;
+      min-height: 100vh;
+      background: rgba(9, 8, 24, 0.94);
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+      gap: 1.5rem;
+      padding: 1.2rem 1.8rem 1.8rem;
+      backdrop-filter: blur(18px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      border-right: 1px solid rgba(54, 56, 104, 0.8);
+      padding-right: 1.25rem;
+    }
+
+    .logo-full {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 0.8rem 0;
+    }
+
+    .logo-full-img {
+      width: 100%;
+      max-width: 180px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .nav-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: #68679b;
+      margin: 0.9rem 0 0.3rem;
+    }
+
+    .nav-pill-active {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 0.7rem;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(123, 92, 255, 0.2), rgba(255, 122, 196, 0.16));
+      font-size: 0.88rem;
+    }
+
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(255, 122, 196, 0.85);
+    }
+
+    .nav-link {
+      margin-top: 0.4rem;
+      width: 100%;
+      text-align: left;
+      padding: 0.45rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(70, 77, 178, 0.7);
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      background: rgba(123, 92, 255, 0.18);
+      color: var(--accent-soft);
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      border-radius: 18px;
+      padding: 0.75rem 0.8rem;
+      background: radial-gradient(circle at top left, rgba(123, 92, 255, 0.2), transparent 60%);
+      border: 1px solid rgba(75, 91, 245, 0.4);
+    }
+
+    .sidebar-footer strong {
+      color: var(--accent-soft);
+    }
+
+    /* Main */
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .main-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .main-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .main-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-soft);
+    }
+
+    /* Panel central */
+    .cards-grid {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1rem;
+    }
+
+    .card-link {
+      background: var(--card-bg);
+      border-radius: var(--radius-xl);
+      padding: 1rem;
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 16px 32px rgba(0,0,0,0.8);
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .card-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 40px rgba(0,0,0,0.9);
+      border-color: rgba(123, 92, 255, 0.9);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .card-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-soft);
+    }
+
+    .card-tag {
+      display: inline-flex;
+      margin-top: 0.3rem;
+      padding: 0.18rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(147, 135, 255, 0.75);
+      color: var(--primary-soft);
+      background: rgba(16, 18, 70, 0.95);
+    }
+
+    .kpi-row {
+      margin-top: 1.2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.7rem;
+    }
+
+    .kpi-card {
+      background: #181a3a;
+      border-radius: 16px;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid rgba(63, 67, 144, 0.9);
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .kpi-label {
+      color: var(--text-soft);
+      font-size: 0.78rem;
+    }
+
+    .kpi-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .kpi-note {
+      font-size: 0.72rem;
+      color: var(--accent-soft);
+    }
+
+    @media (max-width: 980px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+      }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid rgba(54, 56, 104, 0.8);
+        padding-right: 0;
+        padding-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo-full">
+        <img src="/static/logo.png" class="logo-full-img" alt="logo 3D.IEGO" />
+      </div>
+
+      <div>
+        <div class="nav-title">Secciones</div>
+
+        <!-- Página actual -->
+        <div class="nav-pill-active">
+          <span class="nav-dot"></span>
+          Panel principal
+        </div>
+
+
+        <button class="nav-link" type="button" onclick="location.href='/stock'">
+          Stock de productos
+        </button>
+
+        <button class="nav-link" type="button" onclick="location.href='/revendedores'">
+          Revendedores
+        </button>
+
+        <button class="nav-link" type="button" onclick="location.href='/entregas'">
+          Entregas
+        </button>
+
+        <button class="nav-link" type="button" onclick="location.href='/cuentas'">
+          Cuentas
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <strong>Idea para después:</strong> acá podés ver
+        un resumen rápido de cómo viene el mes, quién te debe más,
+        cuál es la pieza estrella, etc.
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="main-header">
+        <div class="main-title">Panel principal</div>
+        <div class="main-subtitle">
+          Acá vas a ver un resumen general de 3D.IEGO: stock, revendedores y métricas del mes.
+        </div>
+      </header>
+
+      <!-- KPIs -->
+      <section class="kpi-row">
+        <!-- Ganancia del mes -->
+        <div class="kpi-card">
+          <div class="kpi-label">Ganancia del mes</div>
+          <div class="kpi-value">
+            {% if ganancia_mes %}
+              $ {{ "{:,.0f}".format(ganancia_mes) }}
+            {% else %}
+              $ 0
+            {% endif %}
+          </div>
+          <div class="kpi-note">
+            {% if ganancia_mes and ganancia_mes > 0 %}
+              Ganancia acumulada del mes actual.
+            {% else %}
+              Todavía no hay entregas registradas este mes.
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Pieza más vendida -->
+        <div class="kpi-card">
+          <div class="kpi-label">Pieza más vendida</div>
+          <div class="kpi-value">
+            {{ pieza_mas_vendida or '-' }}
+          </div>
+          <div class="kpi-note">
+            Calculado según la cantidad total vendida en el mes.
+          </div>
+        </div>
+
+        <!-- Revendedor top -->
+        <div class="kpi-card">
+          <div class="kpi-label">Revendedor top (por $)</div>
+          <div class="kpi-value">
+            {{ revendedor_top or '-' }}
+          </div>
+          <div class="kpi-note">
+            Es el revendedor con mayor monto vendido este mes.
+          </div>
+        </div>
+      </section>
+
+      <!-- Tarjetas -->
+      <section class="cards-grid">
+        <article class="card-link" onclick="location.href='/stock'">
+          <div class="card-title">Stock de productos</div>
+          <div class="card-subtitle">
+            Ver y editar todo lo impreso: llaveros, figuras, brainrots, lámparas, etc.
+          </div>
+          <span class="card-tag">Ir al módulo de stock →</span>
+        </article>
+
+        <article class="card-link" onclick="location.href='/revendedores'">
+          <div class="card-title">Revendedores</div>
+          <div class="card-subtitle">
+            Ver quiénes son, cuánto te deben, notas y estado general.
+          </div>
+          <span class="card-tag">Ir a revendedores →</span>
+        </article>
+
+        <article class="card-link" onclick="location.href='/entregas'">
+          <div class="card-title">Entregas</div>
+          <div class="card-subtitle">
+            Registrar pedidos, descontar stock y generar historial de ventas.
+          </div>
+          <span class="card-tag">Ir al módulo de entregas →</span>
+        </article>
+
+        <article class="card-link" onclick="location.href='/cuentas'">
+          <div class="card-title">Cuentas</div>
+          <div class="card-subtitle">
+            Resumen de pagos, costos de filamento y ganancia por mes.
+          </div>
+          <span class="card-tag">Ir a cuentas →</span>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

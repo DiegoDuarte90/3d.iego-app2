@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>3D.IEGO · Cuentas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root {
+      --bg: #050411;
+      --bg-soft: #0f1020;
+      --primary: #7b5cff;
+      --primary-soft: #9883ff;
+      --accent: #ff7ac4;
+      --accent-soft: #ffb1df;
+      --text-main: #f7f4ff;
+      --text-soft: #a6a4c9;
+      --card-bg: #121328;
+      --border-soft: #26294a;
+      --danger: #ff4c6a;
+      --success: #4cd964;
+      --radius-xl: 22px;
+      --radius-md: 14px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.55);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1b1538 0, #050411 45%);
+      color: var(--text-main);
+      padding: 24px;
+    }
+
+    .layout {
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+
+    .subtitle {
+      color: var(--text-soft);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-volver {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(123, 92, 255, 0.6);
+      background: transparent;
+      color: var(--accent-soft);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .btn-volver:hover {
+      background: rgba(123, 92, 255, 0.22);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: linear-gradient(135deg, rgba(18, 19, 40, 0.9), rgba(10, 12, 30, 0.98));
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-soft);
+      border: 1px solid var(--border-soft);
+      padding: 20px 20px 18px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(152, 131, 255, 0.4);
+      background: radial-gradient(circle at top left, rgba(123, 92, 255, 0.3), transparent 60%);
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      min-width: 0;
+    }
+
+    .form-row.stretch > .field {
+      flex: 1;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      min-width: 0;
+    }
+
+    label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    input, select, textarea {
+      background: #08081a;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      padding: 8px 10px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary-soft);
+      box-shadow: 0 0 0 1px rgba(152, 131, 255, 0.6);
+      background: #101027;
+    }
+
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .field-division,
+    .field-small {
+      flex: 0 0 130px;
+    }
+
+    .field-division input,
+    .field-small input,
+    .field-small select {
+      width: 100%;
+      max-width: 130px;
+    }
+
+    .divider {
+      height: 1px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(152, 131, 255, 0.7), transparent);
+      margin: 12px 0 8px;
+      opacity: 0.9;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0 10px;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      border-radius: 6px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
+      margin-top: 6px;
+    }
+
+    .btn-secondary {
+      background: rgba(8, 8, 26, 0.9);
+      color: var(--accent-soft);
+      border: 1px solid rgba(152, 131, 255, 0.4);
+    }
+
+    .btn-primary span,
+    .btn-secondary span {
+      font-size: 1rem;
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .months {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .month-card {
+      padding: 16px 16px 14px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(18, 19, 40, 0.9), rgba(8, 8, 26, 0.98));
+      border: 1px solid var(--border-soft);
+    }
+
+    .month-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .month-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .month-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 0.78rem;
+    }
+
+    th, td {
+      padding: 6px 4px;
+      text-align: left;
+      border-bottom: 1px solid rgba(38, 41, 74, 0.7);
+    }
+
+    th {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-soft);
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: rgba(15, 16, 40, 0.9);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .tag-revendedor {
+      background: rgba(152, 131, 255, 0.16);
+      border: 1px solid rgba(152, 131, 255, 0.7);
+      color: var(--primary-soft);
+    }
+
+    .tag-particular {
+      background: rgba(76, 217, 100, 0.12);
+      border: 1px solid rgba(76, 217, 100, 0.7);
+      color: var(--success);
+    }
+
+    .tag-normal {
+      background: rgba(255, 186, 120, 0.1);
+      border: 1px solid rgba(255, 186, 120, 0.7);
+      color: #ffba78;
+    }
+
+    .tag-precio-revendedor {
+      background: rgba(255, 122, 196, 0.12);
+      border: 1px solid rgba(255, 122, 196, 0.8);
+      color: var(--accent-soft);
+    }
+
+    .empty {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      padding: 10px 0 4px;
+    }
+
+    .card-summary-wide {
+      margin-top: 26px;
+    }
+
+    .card-header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .month-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .month-selector select {
+      background: #08081a;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      padding: 4px 10px;
+      color: var(--text-main);
+      font-size: 0.8rem;
+    }
+
+    .detalle-division {
+      font-size: 0.74rem;
+      color: var(--text-soft);
+      padding: 4px 0 2px;
+    }
+
+    .detalle-division ul {
+      margin: 2px 0 0;
+      padding-left: 18px;
+    }
+
+    .detalle-division li {
+      margin-bottom: 2px;
+    }
+
+    .btn-delete {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 76, 106, 0.8);
+      background: transparent;
+      color: #ffb1c0;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-delete:hover {
+      background: rgba(255, 76, 106, 0.2);
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* KPIs resumen (4 cards iguales) */
+    .kpi-row {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      align-items: stretch;
+    }
+
+    .kpi-card {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, rgba(123, 92, 255, 0.32), rgba(8, 8, 26, 0.95));
+      border: 1px solid rgba(152, 131, 255, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kpi-main-label {
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .kpi-main-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    /* MODALS */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      background: linear-gradient(135deg, #151633, #050411);
+      border-radius: 20px;
+      border: 1px solid var(--border-soft);
+      padding: 18px 18px 16px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-soft);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      font-size: 0.85rem;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .table-small th,
+    .table-small td {
+      font-size: 0.75rem;
+    }
+
+    /* LISTA DE GASTOS DENTRO DE LA CARD */
+    .gastos-list-wrapper {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      background: rgba(8, 8, 26, 0.9);
+      border: 1px solid rgba(38, 41, 74, 0.9);
+      flex: 1 1 auto;
+      max-height: 230px;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 16px;
+      }
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .card-summary-wide {
+        margin-top: 18px;
+      }
+    }
+  </style>
+
+  <script>
+    let currentPagoEditId = null;
+
+    function toggleSplit() {
+      const chk = document.getElementById('chk-dividir');
+      const sec = document.getElementById('split-section');
+      if (chk && sec) {
+        sec.style.display = chk.checked ? 'block' : 'none';
+      }
+    }
+
+    function syncClienteYPrecio() {
+      const selRev = document.querySelector('select[name="revendedor_id"]');
+      const filaParticular = document.getElementById('row-particular');
+      const inputNombre = document.querySelector('input[name="nombre_particular"]');
+      const tipoCliente = document.getElementById('tipo_cliente');
+      const catPrecio = document.getElementById('categoria_precio');
+
+      const tieneRev = selRev && selRev.value;
+
+      if (tieneRev) {
+        if (tipoCliente) tipoCliente.value = 'revendedor';
+        if (catPrecio) catPrecio.value = 'revendedor';
+        if (filaParticular) filaParticular.style.display = 'none';
+        if (inputNombre) inputNombre.value = '';
+      } else {
+        if (tipoCliente) tipoCliente.value = 'particular';
+        if (catPrecio) catPrecio.value = 'normal';
+        if (filaParticular) filaParticular.style.display = 'flex';
+      }
+    }
+
+    function cambiarMes(mesClave) {
+      if (!mesClave) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set('mes', mesClave);
+      window.location.href = url.toString();
+    }
+
+    async function borrarPago(idsStr) {
+      const ids = (idsStr || '')
+        .split(',')
+        .map(x => parseInt(x, 10))
+        .filter(x => !isNaN(x));
+
+      if (!ids.length) {
+        alert('No se encontraron IDs para borrar.');
+        return;
+      }
+
+      if (!confirm('¿Borrar este registro? Esto ajustará también los saldos y resúmenes.')) {
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/pagos/borrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids })
+        });
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+          alert(data.error || 'No se pudo borrar el registro.');
+          return;
+        }
+
+        location.reload();
+      } catch (err) {
+        alert('Error de red al borrar el registro.');
+      }
+    }
+
+    async function borrarGasto(id) {
+      if (!confirm('¿Borrar este gasto?')) return;
+
+      try {
+        const resp = await fetch('/api/gastos/borrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id })
+        });
+        const data = await resp.json();
+        if (!data.ok) {
+          alert(data.error || 'No se pudo borrar el gasto.');
+          return;
+        }
+        location.reload();
+      } catch (err) {
+        alert('Error de red al borrar el gasto.');
+      }
+    }
+
+    function abrirModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('show');
+    }
+
+    function cerrarModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('show');
+    }
+
+    async function editarPago(idsStr) {
+      const ids = (idsStr || '')
+        .split(',')
+        .map(x => parseInt(x, 10))
+        .filter(x => !isNaN(x));
+
+      if (ids.length !== 1) {
+        alert('Por ahora solo se pueden editar pagos simples (sin división).');
+        return;
+      }
+
+      const id = ids[0];
+      currentPagoEditId = id;
+
+      try {
+        const resp = await fetch(`/api/pagos/${id}`);
+        const data = await resp.json();
+
+        if (!data.ok) {
+          alert(data.error || 'No se pudo cargar el pago.');
+          return;
+        }
+
+        const p = data.pago;
+
+        const f = document.getElementById('edit_fecha');
+        const m = document.getElementById('edit_monto');
+        const d = document.getElementById('edit_division');
+        const selRev = document.getElementById('edit_revendedor_id');
+        const nombrePart = document.getElementById('edit_nombre_particular');
+        const desc = document.getElementById('edit_descripcion');
+        const cat = document.getElementById('edit_categoria_precio');
+
+        if (f) f.value = p.fecha || '';
+        if (m) m.value = p.monto || '';
+        if (d) d.value = p.division || 1;
+        if (desc) desc.value = p.descripcion || '';
+        if (cat) cat.value = p.categoria_precio || 'normal';
+
+        if (selRev) {
+          selRev.value = p.revendedor_id || '';
+        }
+        if (nombrePart) {
+          nombrePart.value = p.nombre_particular || '';
+        }
+
+        abrirModal('modal-edit-pago');
+      } catch (err) {
+        alert('Error de red al cargar el pago.');
+      }
+    }
+
+    async function guardarEdicionPago() {
+      if (!currentPagoEditId) return;
+
+      const f = document.getElementById('edit_fecha');
+      const m = document.getElementById('edit_monto');
+      const d = document.getElementById('edit_division');
+      const selRev = document.getElementById('edit_revendedor_id');
+      const nombrePart = document.getElementById('edit_nombre_particular');
+      const desc = document.getElementById('edit_descripcion');
+      const cat = document.getElementById('edit_categoria_precio');
+
+      const payload = {
+        fecha: f ? f.value : '',
+        monto: m ? m.value : '',
+        division: d ? d.value : 1,
+        revendedor_id: selRev ? selRev.value : '',
+        nombre_particular: nombrePart ? nombrePart.value : '',
+        descripcion: desc ? desc.value : '',
+        categoria_precio: cat ? cat.value : 'normal'
+      };
+
+      try {
+        const resp = await fetch(`/api/pagos/${currentPagoEditId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+          alert(data.error || 'No se pudo guardar la edición.');
+          return;
+        }
+
+        cerrarModal('modal-edit-pago');
+        currentPagoEditId = null;
+        location.reload();
+      } catch (err) {
+        alert('Error de red al guardar la edición.');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const inputFecha = document.getElementById('fecha');
+      if (inputFecha && !inputFecha.value) {
+        const hoy = new Date().toISOString().split('T')[0];
+        inputFecha.value = hoy;
+      }
+
+      toggleSplit();
+
+      const chk = document.getElementById('chk-dividir');
+      if (chk) chk.addEventListener('change', toggleSplit);
+
+      const selRev = document.querySelector('select[name="revendedor_id"]');
+      if (selRev) selRev.addEventListener('change', syncClienteYPrecio);
+
+      syncClienteYPrecio();
+    });
+  </script>
+</head>
+<body>
+  <div class="layout">
+    <div class="top-actions">
+      <div>
+        <h1>Cuentas · 3D.IEGO</h1>
+        <p class="subtitle">
+          Registrá los pagos, sumá los gastos y mirá la ganancia individual por mes.
+        </p>
+      </div>
+      <button class="btn-volver" type="button" onclick="location.href='/'">
+        ← Volver al panel
+      </button>
+    </div>
+
+    <!-- FILA SUPERIOR: NUEVO PAGO + GASTOS -->
+    <div class="grid">
+      <!-- Card: Nuevo pago -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Nuevo pago</div>
+          <div class="badge">
+            <span class="badge-dot"></span>
+            <span>Registro rápido</span>
+          </div>
+        </div>
+
+        <form method="POST">
+          <input type="hidden" name="form_type" value="pago">
+          <input type="hidden" name="tipo_cliente" id="tipo_cliente" value="particular">
+          <input type="hidden" name="categoria_precio" id="categoria_precio" value="normal">
+
+          <div class="form-row stretch">
+            <div class="field">
+              <label for="fecha">Fecha</label>
+              <input type="date" id="fecha" name="fecha">
+            </div>
+            <div class="field">
+              <label>Monto total</label>
+              <input type="number" step="0.01" name="monto" placeholder="Ej: 40000">
+            </div>
+            <div class="field field-division">
+              <label>División costo</label>
+              <input type="number" min="1" name="division" value="2">
+            </div>
+          </div>
+
+          <div class="form-row stretch">
+            <div class="field">
+              <label>Cliente revendedor</label>
+              <select name="revendedor_id">
+                <option value="">Seleccionar...</option>
+                {% for r in revendedores %}
+                  <option value="{{ r.id }}">{{ r.nombre }}</option>
+                {% endfor %}
+              </select>
+              <div class="hint">Si elegís un revendedor, se usa su saldo.</div>
+            </div>
+          </div>
+
+          <div class="form-row stretch" id="row-particular">
+            <div class="field">
+              <label>Nombre particular</label>
+              <input type="text" name="nombre_particular" placeholder="Si es particular, nombre acá">
+            </div>
+          </div>
+
+          <div class="form-row stretch">
+            <div class="field">
+              <label>Descripción</label>
+              <textarea name="descripcion" placeholder="Ej: pago de llaveros + figura Mecha Godzilla"></textarea>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="chk-dividir" name="dividir">
+            <label for="chk-dividir">Dividir este pago en dos registros (ej: revendedor + normal)</label>
+          </div>
+
+          <div id="split-section" style="display:none;">
+            <div class="form-row stretch">
+              <div class="field">
+                <label>Monto 1</label>
+                <input type="number" step="0.01" name="monto1" placeholder="Ej: 30000">
+              </div>
+              <div class="field field-small">
+                <label>División 1</label>
+                <input type="number" min="1" name="division1" value="2">
+              </div>
+              <div class="field field-small">
+                <label>Tipo 1</label>
+                <select name="categoria1">
+                  <option value="revendedor">Revendedor</option>
+                  <option value="normal">Normal</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row stretch">
+              <div class="field">
+                <label>Monto 2</label>
+                <input type="number" step="0.01" name="monto2" placeholder="Ej: 10000">
+              </div>
+              <div class="field field-small">
+                <label>División 2</label>
+                <input type="number" min="1" name="division2" value="2">
+              </div>
+              <div class="field field-small">
+                <label>Tipo 2</label>
+                <select name="categoria2">
+                  <option value="normal">Normal</option>
+                  <option value="revendedor">Revendedor</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="hint">
+              Podés usar el total solo como referencia y elegir manualmente monto 1 y monto 2.
+            </div>
+          </div>
+
+          <button class="btn-primary" type="submit">
+            <span>＋</span> Guardar pago
+          </button>
+        </form>
+      </div>
+
+      <!-- Card: Gastos -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Gastos</div>
+          <div class="badge">
+            <span class="badge-dot"></span>
+            <span>Repuestos y extras</span>
+          </div>
+        </div>
+
+        <p class="subtitle" style="margin-bottom: 12px; font-size:0.85rem;">
+          Registrá los gastos del mes (filamento, repuestos, etc.). Se descuentan de la ganancia individual.
+        </p>
+
+        <div class="form-row" style="margin-top:8px; margin-bottom:14px;">
+          <button
+            type="button"
+            class="btn-primary"
+            onclick="abrirModal('modal-gasto')">
+            <span>＋</span> Agregar gasto
+          </button>
+        </div>
+
+        {% if resumen_mes %}
+          <div style="margin-top:0; font-size:0.8rem; color:var(--text-soft);">
+            Gastos del mes seleccionado: <strong>${{ '%.2f'|format(resumen_mes.gastos_mes) }}</strong><br>
+            Pagado a ayudante: <strong>${{ '%.2f'|format(resumen_mes.pagado_ayudante) }}</strong>
+          </div>
+        {% else %}
+          <p class="empty" style="margin-top:4px;">No hay datos de gastos para este mes.</p>
+        {% endif %}
+
+        <!-- LISTA DE GASTOS DEL MES DENTRO DE LA CARD -->
+        <div class="gastos-list-wrapper">
+          {% if gastos_mes_list and gastos_mes_list|length > 0 %}
+            <table class="table-small">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Detalle</th>
+                  <th>Monto</th>
+                  <th>Filamento</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for g in gastos_mes_list %}
+                  <tr>
+                    <td>{{ g.fecha }}</td>
+                    <td>{{ g.descripcion or '—' }}</td>
+                    <td>${{ '%.2f'|format(g.monto) }}</td>
+                    <td style="text-align:center;">
+                      {% if g.es_filamento == 1 %}
+                        🧵
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td>
+                      <button type="button" class="btn-delete" onclick="borrarGasto({{ g.id }})">🗑</button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="empty" style="padding:4px 0;">No hay gastos cargados para este mes.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD INFERIOR: RESUMEN POR MES -->
+    <div class="card card-summary-wide">
+      <div class="card-header">
+        <div class="card-title">Resumen por mes</div>
+        <div class="card-header-right">
+          {% if meses_disponibles %}
+          <div class="month-selector">
+            <span>Mes:</span>
+
+            <!-- Select Año -->
+            <select id="anio-select" onchange="onMesAnioChange()">
+              {% set anio_actual = mes_seleccionado[0:4] %}
+              {% set anios = [] %}
+              {% for clave in meses_disponibles %}
+                {% set anio_k = clave[0:4] %}
+                {% if anio_k not in anios %}
+                  {% set _ = anios.append(anio_k) %}
+                {% endif %}
+              {% endfor %}
+              {% for a in anios %}
+                <option value="{{ a }}" {% if a == anio_actual %}selected{% endif %}>{{ a }}</option>
+              {% endfor %}
+            </select>
+
+            <!-- Select Mes SOLO si hay datos -->
+            <select id="mes-select" onchange="onMesAnioChange()">
+              {% set mes_actual = mes_seleccionado[5:7] %}
+
+              {% set meses_por_anio = {} %}
+              {% for clave in meses_disponibles %}
+                {% set anio = clave[0:4] %}
+                {% set mes = clave[5:7] %}
+                {% if anio not in meses_por_anio %}
+                  {% set _ = meses_por_anio.update({anio: []}) %}
+                {% endif %}
+                {% if mes not in meses_por_anio[anio] %}
+                  {% set _ = meses_por_anio[anio].append(mes) %}
+                {% endif %}
+              {% endfor %}
+
+              {% for m in meses_por_anio[anio_actual] %}
+                <option value="{{ m }}" {% if m == mes_actual %}selected{% endif %}>
+                  {% if m == '01' %}ENERO
+                  {% elif m == '02' %}FEBRERO
+                  {% elif m == '03' %}MARZO
+                  {% elif m == '04' %}ABRIL
+                  {% elif m == '05' %}MAYO
+                  {% elif m == '06' %}JUNIO
+                  {% elif m == '07' %}JULIO
+                  {% elif m == '08' %}AGOSTO
+                  {% elif m == '09' %}SEPTIEMBRE
+                  {% elif m == '10' %}OCTUBRE
+                  {% elif m == '11' %}NOVIEMBRE
+                  {% elif m == '12' %}DICIEMBRE
+                  {% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <script>
+          function onMesAnioChange() {
+            const anio = document.getElementById("anio-select").value;
+            const mes = document.getElementById("mes-select").value;
+            const clave = `${anio}-${mes}`;
+
+            const url = new URL(window.location.href);
+            url.searchParams.set("mes", clave);
+            window.location.href = url.toString();
+          }
+          </script>
+
+
+          {% endif %}
+          <div class="badge">
+            <span class="badge-dot"></span>
+            <span>Ganancia individual</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs del mes -->
+      {% if resumen_mes %}
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-main-label">Ganancia individual (neta)</div>
+            <div class="kpi-main-value">
+              ${{ '%.2f'|format(resumen_mes.gi_neta) }}
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-soft); margin-top:2px;">
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-main-label">Gastos del mes</div>
+            <div class="kpi-main-value">
+              ${{ '%.2f'|format(resumen_mes.gastos_mes) }}
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-main-label">Ayudante (pendiente)</div>
+            <div class="kpi-main-value">
+              ${{ '%.2f'|format(resumen_mes.ayudante) }}
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-main-label">Para filamento</div>
+            <div class="kpi-main-value">
+              ${{ '%.2f'|format(fondo_filamento or 0) }}
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-soft); margin-top:2px;">
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <p class="empty">No hay información de resumen para este mes.</p>
+      {% endif %}
+
+      <!-- Tabla de pagos del mes -->
+      <div class="months">
+        {% if not meses %}
+          <p class="empty">Todavía no hay pagos registrados.</p>
+        {% else %}
+          {% for mes, data in meses.items() %}
+            <div class="month-card">
+              <div class="month-header">
+                <div class="month-title">
+                  {% set anio = mes[0:4] %}
+                  {% set mnum = mes[5:7] %}
+                  {% if mnum == '01' %}ENERO{% elif mnum == '02' %}FEBRERO
+                  {% elif mnum == '03' %}MARZO{% elif mnum == '04' %}ABRIL
+                  {% elif mnum == '05' %}MAYO{% elif mnum == '06' %}JUNIO
+                  {% elif mnum == '07' %}JULIO{% elif mnum == '08' %}AGOSTO
+                  {% elif mnum == '09' %}SEPTIEMBRE{% elif mnum == '10' %}OCTUBRE
+                  {% elif mnum == '11' %}NOVIEMBRE{% elif mnum == '12' %}DICIEMBRE
+                  {% else %}{{ mes }}{% endif %} {{ anio }}
+                </div>
+                <div class="month-subtitle">
+                  {{ data["items"]|length }} pagos
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Tipo</th>
+                    <th>Precio</th>
+                    <th>Monto</th>
+                    <th>Costo</th>
+                    <th>Ganancia</th>
+                    <th>G. indiv.</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in data["items"] %}
+                    <tr>
+                      <td>{{ p.fecha }}</td>
+                      <td>
+                        {% if p.tipo_cliente == 'revendedor' %}
+                          {{ p.revendedor_nombre or 'Revendedor' }}
+                        {% else %}
+                          {{ p.nombre_particular or 'Particular' }}
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if p.tipo_cliente == 'revendedor' %}
+                          <span class="tag tag-revendedor">REV.</span>
+                        {% else %}
+                          <span class="tag tag-particular">PART.</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if p.detalles|length == 1 %}
+                          {% set d0 = p.detalles[0] %}
+                          {% if d0.categoria_precio == 'revendedor' %}
+                            <span class="tag tag-precio-revendedor">REVENDEDOR</span>
+                          {% else %}
+                            <span class="tag tag-normal">NORMAL</span>
+                          {% endif %}
+                        {% else %}
+                          <span class="tag tag-normal">MIXTO</span>
+                        {% endif %}
+                      </td>
+                      <td>${{ '%.2f'|format(p.monto) }}</td>
+                      <td>${{ '%.2f'|format(p.costo) }}</td>
+                      <td>${{ '%.2f'|format(p.ganancia) }}</td>
+                      <td>${{ '%.2f'|format(p.ganancia_individual) }}</td>
+                      <td>
+                        <div class="actions-cell">
+                          <button
+                            type="button"
+                            class="btn-secondary"
+                            onclick="editarPago('{{ p.ids|join(',') }}')">
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            class="btn-delete"
+                            onclick="borrarPago('{{ p.ids|join(',') }}')">
+                            Borrar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {% if p.detalles|length > 1 %}
+                      <tr>
+                        <td colspan="9">
+                          <div class="detalle-division">
+                            Detalle división:
+                            <ul>
+                              {% for d in p.detalles %}
+                                <li>
+                                  ${{ '%.2f'|format(d.monto) }}
+                                  · división {{ d.division }}
+                                  ·
+                                  {% if d.categoria_precio == 'revendedor' %}
+                                    precio revendedor
+                                  {% else %}
+                                    precio normal
+                                  {% endif %}
+                                </li>
+                              {% endfor %}
+                            </ul>
+                          </div>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVO GASTO -->
+  <div class="modal-backdrop" id="modal-gasto">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Nuevo gasto</div>
+        <button class="modal-close" type="button" onclick="cerrarModal('modal-gasto')">×</button>
+      </div>
+      <div class="modal-body">
+        <form method="POST">
+          <input type="hidden" name="form_type" value="gasto">
+
+          <div class="field" style="margin-bottom:10px;">
+            <label for="fecha_gasto">Fecha</label>
+            <input
+              type="date"
+              id="fecha_gasto"
+              name="fecha_gasto"
+              value="{{ hoy }}">
+          </div>
+
+          <div class="field" style="margin-bottom:10px;">
+            <label for="descripcion_gasto">Detalle</label>
+            <textarea
+              id="descripcion_gasto"
+              name="descripcion_gasto"
+              placeholder="Ej: filamento PLA, repuesto cama, etc."></textarea>
+          </div>
+
+          <div class="field" style="margin-bottom:4px;">
+            <label for="monto_gasto">Monto</label>
+            <input
+              type="number"
+              step="0.01"
+              id="monto_gasto"
+              name="monto_gasto"
+              placeholder="Ej: 12000">
+          </div>
+
+          <input type="hidden" name="tipo_gasto" value="gasto">
+
+          <div class="field" style="margin:8px 0 4px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input
+                type="checkbox"
+                name="es_filamento"
+                value="1"
+                style="width:16px; height:16px; border-radius:6px;">
+              Marcar como gasto de filamento
+            </label>
+            <div class="hint">
+              Además de restar en los gastos del mes, descuenta del fondo "Para filamento".
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="cerrarModal('modal-gasto')">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              <span>＋</span> Guardar gasto
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR PAGO SIMPLE -->
+  <div class="modal-backdrop" id="modal-edit-pago">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Editar pago</div>
+        <button class="modal-close" type="button" onclick="cerrarModal('modal-edit-pago')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="field" style="margin-bottom:10px;">
+          <label for="edit_fecha">Fecha</label>
+          <input type="date" id="edit_fecha">
+        </div>
+
+        <div class="form-row stretch" style="margin-bottom:10px;">
+          <div class="field">
+            <label for="edit_monto">Monto</label>
+            <input type="number" step="0.01" id="edit_monto">
+          </div>
+          <div class="field field-small">
+            <label for="edit_division">División costo</label>
+            <input type="number" min="1" id="edit_division" value="2">
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label for="edit_revendedor_id">Cliente revendedor</label>
+          <select id="edit_revendedor_id">
+            <option value="">(ninguno)</option>
+            {% for r in revendedores %}
+              <option value="{{ r.id }}">{{ r.nombre }}</option>
+            {% endfor %}
+          </select>
+          <div class="hint">Si elegís un revendedor, se ignora el nombre particular.</div>
+        </div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label for="edit_nombre_particular">Nombre particular</label>
+          <input type="text" id="edit_nombre_particular" placeholder="Solo si no es revendedor">
+        </div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label for="edit_categoria_precio">Categoría de precio</label>
+          <select id="edit_categoria_precio">
+            <option value="normal">Normal</option>
+            <option value="revendedor">Revendedor</option>
+          </select>
+        </div>
+
+        <div class="field" style="margin-bottom:4px;">
+          <label for="edit_descripcion">Descripción</label>
+          <textarea id="edit_descripcion" placeholder="Descripción del pago"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn-secondary"
+          onclick="cerrarModal('modal-edit-pago')">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-primary"
+          onclick="guardarEdicionPago()">
+          Guardar cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

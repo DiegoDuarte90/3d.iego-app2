@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Detalle de entrega</title>
+  <link rel="stylesheet" href="/static/estilos.css">
+  <style>
+    body {
+      background: #0c0d1a;
+      color: #f5f5ff;
+      font-family: system-ui, sans-serif;
+      padding: 2rem;
+    }
+    .card {
+      background: #15172b;
+      border-radius: 18px;
+      padding: 1.5rem;
+      border: 1px solid #2e3053;
+      max-width: 800px;
+      margin: auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    h2 {
+      margin-bottom: 1rem;
+    }
+    .item-row {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #2e3053;
+    }
+    .volver-btn {
+      margin-top: 1.5rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      border: 1px solid #7b5cff;
+      background: #1e1f39;
+      color: #fff;
+      cursor: pointer;
+    }
+    .volver-btn:hover {
+      background: #302f63;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h2>Detalle de entrega #{{ entrega.id }}</h2>
+
+  <p><strong>Fecha:</strong> {{ entrega.fecha }}</p>
+  <p><strong>Cliente:</strong> {{ entrega.cliente_nombre }}</p>
+  <p><strong>Tipo:</strong> {{ entrega.tipo_cliente }}</p>
+  <p><strong>Cantidad total de piezas:</strong> {{ entrega.cantidad_total }}</p>
+  <p><strong>Total:</strong> $ {{ "%.2f"|format(entrega.total) }}</p>
+
+  <hr style="margin: 1.2rem 0; border-color:#2e3053;">
+
+  <h3>Piezas entregadas</h3>
+
+  {% for item in items %}
+    <div class="item-row">
+      <strong>{{ item.nombre_pieza }}</strong><br>
+      Cantidad: {{ item.cantidad }} — 
+      Precio: $ {{ "%.2f"|format(item.precio_unitario) }} — 
+      Total: $ {{ "%.2f"|format(item.total) }}
+    </div>
+  {% endfor %}
+
+  <button class="volver-btn" onclick="window.location.href='/entregas'">Volver</button>
+
+</div>
+
+</body>
+</html>

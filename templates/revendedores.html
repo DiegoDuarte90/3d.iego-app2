@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>3D.IEGO · Revendedores</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root {
+      --bg: #050411;
+      --bg-soft: #0f1020;
+      --primary: #7b5cff;
+      --primary-soft: #a48cff;
+      --accent: #ff7ac4;
+      --accent-soft: #ffb1df;
+      --text-main: #f7f4ff;
+      --text-soft: #a6a4c9;
+      --card-bg: #121328;
+      --border-soft: #26294a;
+      --radius-xl: 22px;
+      --shadow-soft: 0 24px 50px rgba(0, 0, 0, 0.75);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #3a2a7a 0, transparent 55%),
+        radial-gradient(circle at bottom right, #3f1132 0, transparent 55%),
+        var(--bg);
+      color: var(--text-main);
+      padding: 0;
+    }
+
+    .app-shell {
+      width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      background: rgba(6, 6, 20, 0.92);
+      border-radius: 0;
+      border: 1px solid rgba(63, 67, 144, 0.8);
+      box-shadow: var(--shadow-soft);
+      padding: 1.1rem 1.5rem 1.4rem;
+      backdrop-filter: blur(18px);
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    @media (max-width: 720px) {
+      .app-shell {
+        padding: 0.9rem;
+      }
+    }
+
+    /* HEADER */
+    .main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding-bottom: 0.7rem;
+      border-bottom: 1px solid rgba(54, 56, 104, 0.8);
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .title {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-soft);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-volver {
+      background: transparent;
+      border-color: rgba(123, 92, 255, 0.5);
+      color: var(--accent-soft);
+    }
+
+    .btn-volver:hover {
+      background: rgba(123, 92, 255, 0.25);
+    }
+
+    .btn-nuevo {
+      background: linear-gradient(90deg, #7b5cff, #ff7ac4);
+      color: #060212;
+      font-weight: 600;
+    }
+
+    .btn-nuevo:hover {
+      filter: brightness(1.05);
+    }
+
+    .badge-estado {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(147, 135, 255, 0.8);
+      background: rgba(18, 19, 60, 0.9);
+      color: var(--accent-soft);
+    }
+
+    /* LAYOUT PRINCIPAL */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 1rem;
+      min-height: 430px;
+      flex: 1;
+    }
+
+    @media (max-width: 900px) {
+      .main-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    /* PANEL LISTA IZQUIERDA */
+    .list-panel {
+      background: radial-gradient(circle at top left, rgba(76, 67, 176, 0.28), transparent 60%), var(--bg-soft);
+      border-radius: 20px;
+      border: 1px solid rgba(63, 67, 144, 0.9);
+      padding: 0.7rem 0.6rem 0.7rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .list-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(10, 11, 40, 0.95);
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      border: 1px solid rgba(58, 62, 146, 0.9);
+      font-size: 0.8rem;
+    }
+
+    .search-box input {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      width: 100%;
+    }
+
+    .search-box input::placeholder {
+      color: #7776a8;
+    }
+
+    .filters {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      align-items: center;
+    }
+
+    .filter-label {
+      color: var(--text-soft);
+      margin-right: 0.2rem;
+    }
+
+    .filter-pill {
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(70, 77, 178, 0.8);
+      background: rgba(24, 26, 71, 0.9);
+      color: var(--accent-soft);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .filter-pill.active {
+      background: rgba(123, 92, 255, 0.35);
+      border-color: rgba(123, 92, 255, 0.95);
+      color: var(--primary-soft);
+    }
+
+    .list-count {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .list-scroll {
+      margin-top: 0.3rem;
+      padding-right: 0.1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 260px);
+    }
+
+    .list-item {
+      width: 100%;
+      text-align: left;
+      border-radius: 14px;
+      border: 1px solid rgba(45, 49, 120, 0.95);
+      background: rgba(13, 14, 40, 0.95);
+      padding: 0.45rem 0.5rem;
+      margin-bottom: 0.4rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.18rem;
+      font-size: 0.82rem;
+    }
+
+    .list-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .list-item:hover {
+      background: rgba(33, 36, 92, 0.95);
+    }
+
+    .list-item.selected {
+      border-color: rgba(252, 159, 255, 0.9);
+      box-shadow: 0 0 0 1px rgba(255, 122, 196, 0.55);
+      background: radial-gradient(circle at top left, rgba(255, 122, 196, 0.15), rgba(13, 14, 40, 0.98));
+    }
+
+    .list-item-name {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .list-item-contact {
+      color: var(--text-soft);
+      font-size: 0.75rem;
+    }
+
+    .list-item-saldo {
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .saldo-neg {
+      color: #ff7a7a;
+    }
+    .saldo-pos {
+      color: #69ff9f;
+    }
+    .saldo-zero {
+      color: var(--text-soft);
+    }
+
+    /* PANEL DETALLE DERECHA */
+    .detail-panel {
+      background: radial-gradient(circle at top right, rgba(255, 122, 196, 0.16), transparent 60%), var(--card-bg);
+      border-radius: 20px;
+      border: 1px solid rgba(63, 67, 144, 0.9);
+      padding: 0.9rem 1rem 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    .detail-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-soft);
+      font-size: 0.95rem;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.7rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .detail-main-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .detail-chip-saldo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 122, 196, 0.8);
+      background: rgba(15, 10, 30, 0.96);
+      font-size: 0.78rem;
+    }
+
+    .detail-chip-saldo span.monto {
+      font-weight: 600;
+    }
+
+    .detail-chip-saldo.deuda {
+      border-color: rgba(255, 122, 135, 0.9);
+      color: #ffb1c1;
+    }
+
+    .detail-chip-saldo.afavor {
+      border-color: rgba(70, 255, 170, 0.9);
+      color: #a1ffd3;
+    }
+
+    .detail-chip-saldo.neutro {
+      border-color: rgba(147, 135, 255, 0.8);
+      color: var(--accent-soft);
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn-detail {
+      padding: 0.32rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(140, 120, 255, 0.9);
+      background: rgba(24, 22, 82, 0.95);
+      color: var(--accent-soft);
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-detail:hover {
+      background: rgba(77, 71, 186, 0.95);
+    }
+
+    .btn-detail-secondary {
+      padding: 0.32rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(95, 98, 176, 0.9);
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .btn-detail-secondary:hover {
+      background: rgba(33, 33, 96, 0.9);
+    }
+
+    /* botón borrar revendedor */
+    .btn-detail-danger {
+      padding: 0.32rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 115, 140, 0.95);
+      background: rgba(72, 16, 32, 0.95);
+      color: #ffb3c3;
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-detail-danger:hover {
+      background: rgba(112, 24, 48, 0.98);
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 0.7rem;
+      margin-top: 0.3rem;
+    }
+
+    @media (max-width: 900px) {
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .detail-card {
+      background: rgba(10, 10, 36, 0.96);
+      border-radius: 16px;
+      border: 1px solid rgba(48, 51, 120, 0.9);
+      padding: 0.7rem 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+    }
+
+    .detail-card-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-soft);
+    }
+
+    .detail-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .detail-label {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .detail-value {
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .detail-notas {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      white-space: pre-wrap;
+    }
+
+    .detail-meta {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    /* Movimientos */
+    .detail-card-full {
+      margin-top: 0.4rem;
+    }
+
+    .movimientos-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      margin-bottom: 0.3rem;
+    }
+
+    .movimientos-table-wrapper {
+      max-height: 260px;
+      overflow-y: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(48, 51, 120, 0.8);
+    }
+
+    table.movimientos-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      background: rgba(10, 10, 32, 0.96);
+    }
+
+    table.movimientos-table th,
+    table.movimientos-table td {
+      padding: 0.35rem 0.6rem;
+      text-align: left;
+    }
+
+    table.movimientos-table th {
+      border-bottom: 1px solid rgba(60, 63, 140, 0.9);
+      color: #c0c2ff;
+      font-size: 0.75rem;
+    }
+
+    table.movimientos-table tbody tr:nth-child(even) {
+      background: rgba(14, 15, 40, 0.96);
+    }
+
+    table.movimientos-table tbody tr:hover {
+      background: rgba(28, 30, 80, 0.98);
+    }
+
+    .mov-empty {
+      margin-top: 0.4rem;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .mov-error {
+      margin-top: 0.4rem;
+      font-size: 0.78rem;
+      color: #ffb1df;
+    }
+
+    /* MODAL NUEVO / EDITAR */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-hidden {
+      display: none;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 480px;
+      background: #101124;
+      border-radius: 18px;
+      padding: 1rem 1.3rem 1.2rem;
+      border: 1px solid rgba(120, 110, 255, 0.9);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      border: none;
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+
+    .field-label {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .field-input,
+    .field-textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(76, 80, 170, 0.9);
+      background: #07081a;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      padding: 0.35rem 0.5rem;
+      outline: none;
+    }
+
+    .field-input:focus,
+    .field-textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .field-textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.8rem;
+    }
+
+    .btn-sec {
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(95, 98, 176, 0.9);
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .btn-pri {
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: linear-gradient(90deg, #7b5cff, #ff7ac4);
+      color: #060212;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .sin-datos {
+      margin-top: 0.7rem;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- HEADER -->
+    <header class="main-header">
+      <div class="title-block">
+        <div class="title">Revendedores</div>
+        <div class="subtitle">Gestioná tus revendedores, su saldo y sus últimas entregas.</div>
+      </div>
+      <div class="header-actions">
+        <span class="badge-estado" id="badge-estado">Conectando a la base…</span>
+        <button class="btn btn-volver" onclick="location.href='/'">← Volver al panel principal</button>
+        <button class="btn btn-nuevo" id="btn-nuevo">+ Nuevo revendedor</button>
+      </div>
+    </header>
+
+    <!-- LAYOUT PRINCIPAL -->
+    <section class="main-layout">
+      <!-- LISTA IZQUIERDA -->
+      <aside class="list-panel">
+        <div class="list-header">
+          <div class="search-box">
+            <span style="font-size:0.85rem;">🔍</span>
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Buscar por nombre o contacto..."
+            />
+          </div>
+          <div class="filters">
+            <span class="filter-label">Mostrar:</span>
+            <button type="button" class="filter-pill active" data-filter="todos">Todos</button>
+            <button type="button" class="filter-pill" data-filter="deuda">Con deuda</button>
+            <button type="button" class="filter-pill" data-filter="sin-deuda">Sin deuda</button>
+          </div>
+          <div class="list-count">
+            Revendedores: <span id="list-count">0</span>
+          </div>
+        </div>
+
+        <div class="list-scroll" id="lista-revendedores"></div>
+        <div class="sin-datos" id="sin-datos" style="display:none;">No hay revendedores cargados.</div>
+      </aside>
+
+      <!-- DETALLE DERECHA -->
+      <section class="detail-panel" id="detail-panel">
+        <div class="detail-empty" id="detail-empty">
+          Seleccioná un revendedor de la lista de la izquierda para ver el detalle.
+        </div>
+
+        <div id="detail-content" style="display:none;">
+          <div class="detail-header">
+            <div class="detail-main-title">
+              <span id="detail-nombre"></span>
+              <span class="detail-meta" id="detail-meta"></span>
+            </div>
+            <div class="detail-actions">
+              <button type="button" class="btn-detail" id="btn-editar-detalle">Editar</button>
+              <button type="button" class="btn-detail-secondary" onclick="location.href='/entregas'">
+                Ir a entregas
+              </button>
+              <button type="button" class="btn-detail-danger" id="btn-borrar-detalle">
+                Borrar revendedor
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-chip-saldo neutro" id="detail-chip-saldo">
+            <span>Saldo actual:</span>
+            <span class="monto" id="detail-saldo"></span>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-card">
+              <div class="detail-card-title">Información de contacto</div>
+              <div class="detail-row">
+                <span class="detail-label">Contacto</span>
+                <span class="detail-value" id="detail-contacto"></span>
+              </div>
+              <div class="detail-row" style="margin-top:0.3rem;">
+                <span class="detail-label">Notas</span>
+                <span class="detail-notas" id="detail-notas"></span>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <div class="detail-card-title">Fechas</div>
+              <div class="detail-row">
+                <span class="detail-label">Creado</span>
+                <span class="detail-value" id="detail-creado"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Última actualización</span>
+                <span class="detail-value" id="detail-actualizado"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MOVIMIENTOS / ENTREGAS -->
+          <div class="detail-card detail-card-full">
+            <div class="movimientos-header">
+              <span class="detail-card-title">Movimientos / entregas</span>
+              <span id="movimientos-resumen"></span>
+            </div>
+
+            <div class="movimientos-table-wrapper">
+              <table class="movimientos-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                    <th>Total</th>
+                    <th>Saldo después</th>
+                    <th>Detalle</th>
+                  </tr>
+                </thead>
+                <tbody id="movimientos-body">
+                  <!-- filas por JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="mov-empty" id="movimientos-empty" style="display:none;">
+              No hay movimientos registrados para este revendedor.
+            </div>
+            <div class="mov-error" id="movimientos-error" style="display:none;">
+              No se pudieron cargar los movimientos.
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <!-- MODAL NUEVO / EDITAR REVENDEDOR -->
+  <div id="overlay" class="modal-overlay modal-hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-titulo">Nuevo revendedor</div>
+        <button class="modal-close" id="btn-cerrar" type="button">✕</button>
+      </div>
+
+      <form id="form-rev">
+        <div class="modal-body">
+          <div>
+            <div class="field-label">Nombre *</div>
+            <input type="text" id="rev-nombre" class="field-input" required />
+          </div>
+          <div>
+            <div class="field-label">Contacto (WhatsApp, IG, etc.)</div>
+            <input type="text" id="rev-contacto" class="field-input" />
+          </div>
+          <div>
+            <div class="field-label">Notas</div>
+            <textarea id="rev-notas" class="field-textarea"></textarea>
+          </div>
+          <div>
+            <div class="field-label">Saldo inicial (lo que te debe)</div>
+            <input type="number" id="rev-saldo" class="field-input" value="0" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-sec" id="btn-cancelar">Cancelar</button>
+          <button type="submit" class="btn-pri" id="btn-guardar">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE ENTREGA (igual al de entregas.html) -->
+  <div id="modalDetalle" style="
+    display:none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  ">
+    <div style="
+      background:#15172b;
+      padding: 1.8rem;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      color:#fff;
+      border: 1px solid #2e3053;
+    ">
+      <h2 id="detalleTitulo"></h2>
+      <p><strong>Fecha:</strong> <span id="detalleFecha"></span></p>
+      <p><strong>Cliente:</strong> <span id="detalleCliente"></span></p>
+      <p><strong>Tipo:</strong> <span id="detalleTipo"></span></p>
+      <p><strong>Cantidad total:</strong> <span id="detalleCantidad"></span></p>
+      <p><strong>Total:</strong> $<span id="detalleTotal"></span></p>
+
+      <hr style="margin:1rem 0; border-color:#2e3053;">
+
+      <h3>Piezas entregadas</h3>
+      <div id="detalleItems"></div>
+
+      <button onclick="cerrarModal()" style="
+        margin-top: 1rem;
+        padding: .6rem 1.2rem;
+        background:#272a4d;
+        border:1px solid #7b5cff;
+        border-radius:10px;
+        cursor:pointer;
+        color:#fff;
+      ">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    // --------- Estado global ---------
+    let revendedores = [];
+    let modoRev = "nuevo";      // "nuevo" | "editar"
+    let idEditando = null;
+    let idSeleccionado = null;
+    let filtroEstado = "todos"; // "todos" | "deuda" | "sin-deuda";
+
+    // --------- DOM refs ---------
+    const badgeEstado = document.getElementById("badge-estado");
+    const listaContainer = document.getElementById("lista-revendedores");
+    const listCountSpan = document.getElementById("list-count");
+    const sinDatos = document.getElementById("sin-datos");
+    const searchInput = document.getElementById("search-input");
+
+    const detailEmpty = document.getElementById("detail-empty");
+    const detailContent = document.getElementById("detail-content");
+    const detailNombre = document.getElementById("detail-nombre");
+    const detailMeta = document.getElementById("detail-meta");
+    const detailSaldo = document.getElementById("detail-saldo");
+    const detailChipSaldo = document.getElementById("detail-chip-saldo");
+    const detailContacto = document.getElementById("detail-contacto");
+    const detailNotas = document.getElementById("detail-notas");
+    const detailCreado = document.getElementById("detail-creado");
+    const detailActualizado = document.getElementById("detail-actualizado");
+    const btnEditarDetalle = document.getElementById("btn-editar-detalle");
+    const btnBorrarDetalle = document.getElementById("btn-borrar-detalle");
+
+    const movBody = document.getElementById("movimientos-body");
+    const movEmpty = document.getElementById("movimientos-empty");
+    const movError = document.getElementById("movimientos-error");
+    const movResumen = document.getElementById("movimientos-resumen");
+
+    const overlay = document.getElementById("overlay");
+    const btnNuevo = document.getElementById("btn-nuevo");
+    const btnCerrar = document.getElementById("btn-cerrar");
+    const btnCancelar = document.getElementById("btn-cancelar");
+    const formRev = document.getElementById("form-rev");
+    const modalTitulo = document.getElementById("modal-titulo");
+    const btnGuardar = document.getElementById("btn-guardar");
+    const nombreInput = document.getElementById("rev-nombre");
+    const contactoInput = document.getElementById("rev-contacto");
+    const notasInput = document.getElementById("rev-notas");
+    const saldoInput = document.getElementById("rev-saldo");
+
+    // --------- Helpers ---------
+    function formatearSaldo(v) {
+      const valor = Number(v || 0);
+      if (valor === 0) return "Sin deudas";
+      if (valor > 0) return `Debe: $ ${valor.toLocaleString("es-AR")}`;
+      return `A favor: $ ${Math.abs(valor).toLocaleString("es-AR")}`;
+    }
+
+    function formatoFechaTexto(str) {
+      if (!str) return "-";
+      return str;
+    }
+
+    function aplicarFiltrosYBusqueda() {
+      const texto = (searchInput.value || "").trim().toLowerCase();
+      return revendedores.filter(r => {
+        const saldo = Number((r.saldo_actual ?? r.saldo_inicial) ?? 0);
+        const tieneDeuda = saldo > 0;
+
+        if (filtroEstado === "deuda" && !tieneDeuda) return false;
+        if (filtroEstado === "sin-deuda" && tieneDeuda) return false;
+
+        if (!texto) return true;
+        const base = `${r.nombre || ""} ${r.contacto || ""}`.toLowerCase();
+        return base.includes(texto);
+      });
+    }
+
+    function renderLista() {
+      const lista = aplicarFiltrosYBusqueda();
+      listaContainer.innerHTML = "";
+
+      if (!lista.length) {
+        sinDatos.style.display = "block";
+        listCountSpan.textContent = "0";
+        idSeleccionado = null;
+        mostrarDetalle(null);
+        return;
+      }
+
+      sinDatos.style.display = "none";
+      listCountSpan.textContent = String(lista.length);
+
+      if (!idSeleccionado || !lista.some(r => r.id === idSeleccionado)) {
+        idSeleccionado = lista[0].id;
+      }
+
+      lista.forEach(r => {
+        const saldo = Number((r.saldo_actual ?? r.saldo_inicial) ?? 0);
+        const div = document.createElement("button");
+        div.type = "button";
+        div.className = "list-item" + (r.id === idSeleccionado ? " selected" : "");
+        div.dataset.id = r.id;
+
+        const saldoClass = saldo > 0 ? "saldo-neg" : saldo < 0 ? "saldo-pos" : "saldo-zero";
+
+        div.innerHTML = `
+          <span class="list-item-name">${r.nombre || "Sin nombre"}</span>
+          <span class="list-item-contact">${r.contacto || "-"}</span>
+          <span class="list-item-saldo ${saldoClass}">${formatearSaldo(saldo)}</span>
+        `;
+
+        div.addEventListener("click", () => {
+          idSeleccionado = r.id;
+          renderLista();
+          mostrarDetalle(r);
+        });
+
+        listaContainer.appendChild(div);
+      });
+
+      const seleccionado = lista.find(r => r.id === idSeleccionado) || null;
+      mostrarDetalle(seleccionado);
+    }
+
+    function limpiarMovimientos() {
+      movBody.innerHTML = "";
+      movEmpty.style.display = "none";
+      movError.style.display = "none";
+      movResumen.textContent = "";
+    }
+
+    function renderMovimientos(movs) {
+      limpiarMovimientos();
+
+      if (!movs || !movs.length) {
+        movEmpty.style.display = "block";
+        movResumen.textContent = "0 movimientos";
+        return;
+      }
+
+      movResumen.textContent = `${movs.length} movimiento${movs.length !== 1 ? "s" : ""}`;
+      movs.forEach(m => {
+        const tr = document.createElement("tr");
+        const fecha = m.fecha || m.date || "-";
+        const desc = m.descripcion || m.descripcion_corta || m.detalle || "-";
+        const total = m.total ?? m.monto ?? 0;
+        const saldoDesp = m.saldo_posterior ?? m.saldo ?? null;
+        const detalleBtn = m.entrega_id
+          ? `<button type="button" class="btn-detail-secondary" onclick="verDetalleEntrega(${m.entrega_id})">Ver</button>`
+          : "-";
+
+        tr.innerHTML = `
+          <td>${fecha}</td>
+          <td>${desc}</td>
+          <td>${total === null ? "-" : "$ " + Number(total).toLocaleString("es-AR")}</td>
+          <td>${saldoDesp === null ? "-" : "$ " + Number(saldoDesp).toLocaleString("es-AR")}</td>
+          <td>${detalleBtn}</td>
+        `;
+        movBody.appendChild(tr);
+      });
+    }
+
+    async function cargarMovimientosRevendedor(id) {
+      limpiarMovimientos();
+      if (!id) return;
+
+      try {
+        const res = await fetch(`/api/revendedores/${id}/movimientos`);
+        if (!res.ok) throw new Error("Respuesta no OK");
+
+        let data = await res.json();
+        let movs = Array.isArray(data) ? data : (data.movimientos || []);
+        renderMovimientos(movs);
+
+        // actualizar "Saldo actual" con el saldo final de los movimientos
+        if (movs && movs.length) {
+          const ultimo = movs[movs.length - 1];
+          const saldoFinal = Number(ultimo.saldo_posterior ?? ultimo.saldo ?? 0);
+
+          detailSaldo.textContent = formatearSaldo(saldoFinal);
+
+          detailChipSaldo.classList.remove("deuda", "afavor", "neutro");
+          if (saldoFinal > 0) {
+            detailChipSaldo.classList.add("deuda");
+          } else if (saldoFinal < 0) {
+            detailChipSaldo.classList.add("afavor");
+          } else {
+            detailChipSaldo.classList.add("neutro");
+          }
+        }
+      } catch (e) {
+        console.error("Error cargando movimientos:", e);
+        movError.style.display = "block";
+        movResumen.textContent = "";
+      }
+    }
+
+    function mostrarDetalle(rev) {
+      if (!rev) {
+        detailEmpty.style.display = "flex";
+        detailContent.style.display = "none";
+        limpiarMovimientos();
+        return;
+      }
+
+      detailEmpty.style.display = "none";
+      detailContent.style.display = "block";
+
+      detailNombre.textContent = rev.nombre || "Sin nombre";
+      detailMeta.textContent = rev.contacto ? `Contacto rápido: ${rev.contacto}` : "Sin datos de contacto";
+
+      const saldo = Number((rev.saldo_actual ?? rev.saldo_inicial) ?? 0);
+      detailSaldo.textContent = formatearSaldo(saldo);
+
+      detailChipSaldo.classList.remove("deuda", "afavor", "neutro");
+      if (saldo > 0) {
+        detailChipSaldo.classList.add("deuda");
+      } else if (saldo < 0) {
+        detailChipSaldo.classList.add("afavor");
+      } else {
+        detailChipSaldo.classList.add("neutro");
+      }
+
+      detailContacto.textContent = rev.contacto || "-";
+      detailNotas.textContent = rev.notas || "-";
+      detailCreado.textContent = formatoFechaTexto(rev.created_at);
+      detailActualizado.textContent = formatoFechaTexto(rev.updated_at);
+
+      btnEditarDetalle.onclick = () => abrirModalEditar(rev);
+
+      cargarMovimientosRevendedor(rev.id);
+    }
+
+    async function cargarRevendedores() {
+      try {
+        badgeEstado.textContent = "Conectando a la base…";
+        const res = await fetch("/api/revendedores");
+        const lista = await res.json();
+        revendedores = lista || [];
+
+        // leer ?selected= de la URL
+        const params = new URLSearchParams(window.location.search);
+        const pre = parseInt(params.get("selected") || "", 10);
+        if (!isNaN(pre) && revendedores.some(r => r.id === pre)) {
+          idSeleccionado = pre;
+        }
+
+        badgeEstado.textContent = "Conectado a SQLite";
+        renderLista();
+      } catch (e) {
+        console.error(e);
+        badgeEstado.textContent = "Error de conexión";
+      }
+    }
+
+    // --------- Modal Nuevo / Editar ---------
+    function abrirModalNuevo() {
+      modoRev = "nuevo";
+      idEditando = null;
+      formRev.reset();
+      saldoInput.value = "0";
+      modalTitulo.textContent = "Nuevo revendedor";
+      btnGuardar.textContent = "Guardar";
+      overlay.classList.remove("modal-hidden");
+      nombreInput.focus();
+    }
+
+    function abrirModalEditar(rev) {
+      modoRev = "editar";
+      idEditando = rev.id;
+      nombreInput.value = rev.nombre || "";
+      contactoInput.value = rev.contacto || "";
+      notasInput.value = rev.notas || "";
+      saldoInput.value = rev.saldo_inicial ?? 0;
+      modalTitulo.textContent = "Editar revendedor";
+      btnGuardar.textContent = "Guardar cambios";
+      overlay.classList.remove("modal-hidden");
+      nombreInput.focus();
+    }
+
+    function cerrarModalRev() {
+      overlay.classList.add("modal-hidden");
+    }
+
+    btnNuevo.addEventListener("click", abrirModalNuevo);
+    btnCerrar.addEventListener("click", cerrarModalRev);
+    btnCancelar.addEventListener("click", cerrarModalRev);
+
+    formRev.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+
+      const payload = {
+        nombre: nombreInput.value.trim(),
+        contacto: contactoInput.value.trim(),
+        notas: notasInput.value.trim(),
+        saldo_inicial: Number(saldoInput.value || 0),
+      };
+
+      if (!payload.nombre) {
+        alert("El nombre es obligatorio");
+        return;
+      }
+
+      const url = (modoRev === "nuevo")
+        ? "/api/revendedores"
+        : `/api/revendedores/${idEditando}`;
+
+      const method = (modoRev === "nuevo") ? "POST" : "PUT";
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Error al guardar revendedor");
+        }
+
+        cerrarModalRev();
+        await cargarRevendedores();
+      } catch (e) {
+        alert("Error: " + e.message);
+        console.error(e);
+      }
+    });
+
+    // --------- Borrar revendedor completo ---------
+    async function borrarRevendedorActual() {
+      if (!idSeleccionado) return;
+
+      const conf = confirm("¿Seguro que querés borrar este revendedor? Solo se puede borrar si no tiene entregas ni pagos.");
+      if (!conf) return;
+
+      try {
+        const res = await fetch("/api/revendedores/borrar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: idSeleccionado })
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+          alert(data.error || "No se pudo borrar el revendedor.");
+          return;
+        }
+
+        // recargar lista
+        await cargarRevendedores();
+        alert("Revendedor borrado correctamente.");
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión al borrar el revendedor.");
+      }
+    }
+
+    btnBorrarDetalle.addEventListener("click", borrarRevendedorActual);
+
+    // --------- Filtros y búsqueda ---------
+    document.querySelectorAll(".filter-pill").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-pill").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        filtroEstado = btn.dataset.filter;
+        renderLista();
+      });
+    });
+
+    searchInput.addEventListener("input", () => {
+      renderLista();
+    });
+
+    // --------- Detalle de entrega (igual que en entregas.html) ---------
+    function formatoMoneda(valor) {
+      return Number(valor || 0).toLocaleString("es-AR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function verDetalleEntrega(id) {
+      fetch(`/api/entregas/${id}`)
+        .then(r => r.json())
+        .then(res => {
+          if (!res.ok) {
+            alert("No se pudo cargar el detalle");
+            return;
+          }
+
+          const e = res.entrega;
+          document.getElementById("detalleTitulo").innerText = `Entrega #${e.id}`;
+          document.getElementById("detalleFecha").innerText = e.fecha;
+          document.getElementById("detalleCliente").innerText = e.cliente_nombre;
+          document.getElementById("detalleTipo").innerText = e.tipo_cliente;
+          document.getElementById("detalleCantidad").innerText = e.cantidad_total;
+          document.getElementById("detalleTotal").innerText = formatoMoneda(e.total);
+
+          const cont = document.getElementById("detalleItems");
+          cont.innerHTML = "";
+          res.items.forEach(it => {
+            cont.innerHTML += `
+              <div style="padding:.5rem 0; border-bottom:1px solid #2e3053">
+                <strong>${it.nombre_pieza}</strong><br>
+                Cantidad: ${it.cantidad} —
+                Precio: $${formatoMoneda(it.precio_unitario)} —
+                Total: $${formatoMoneda(it.total)}
+              </div>
+            `;
+          });
+
+          document.getElementById("modalDetalle").style.display = "flex";
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error al cargar el detalle de la entrega.");
+        });
+    }
+
+    function cerrarModal() {
+      document.getElementById("modalDetalle").style.display = "none";
+    }
+
+    // --------- Arranque ---------
+    cargarRevendedores();
+  </script>
+</body>
+</html>

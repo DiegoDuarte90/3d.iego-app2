@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D.IEGO · Stock de productos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #050411;
+      --bg-soft: #0f1020;
+      --primary: #7b5cff;
+      --primary-soft: #a48cff;
+      --accent: #ff7ac4;
+      --accent-soft: #ffb1df;
+      --card-bg: #121328;
+      --border-soft: #26294a;
+      --text-main: #f7f4ff;
+      --text-soft: #a6a4c9;
+      --radius-xl: 22px;
+      --shadow-soft: 0 24px 50px rgba(0, 0, 0, 0.75);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #3a2a7a 0, transparent 55%),
+        radial-gradient(circle at bottom right, #3f1132 0, transparent 55%),
+        var(--bg);
+      color: var(--text-main);
+      padding: 0;
+      margin: 0;
+    }
+
+    .app-shell {
+      width: 100%;
+      min-height: 100vh;
+      background: rgba(9, 8, 24, 0.94);
+      box-shadow: none;
+      padding: 1.2rem 1.8rem 1.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      backdrop-filter: blur(18px);
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 1px solid rgba(54, 56, 104, 0.8);
+      padding-bottom: 0.9rem;
+    }
+
+    .logo-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .logo-img {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: transparent;
+    }
+
+    .logo-text-main {
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      font-size: 1rem;
+    }
+
+    .logo-text-sub {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .btn-volver-dashboard {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(123, 92, 255, 0.6);
+      background: transparent;
+      color: var(--accent-soft);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      white-space: nowrap;
+    }
+
+    .btn-volver-dashboard:hover {
+      background: rgba(123, 92, 255, 0.22);
+    }
+
+    /* Main */
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+    }
+
+    .main-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .main-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .main-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-soft);
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(21, 22, 54, 0.9);
+      border: 1px solid rgba(147, 135, 255, 0.6);
+      color: var(--primary-soft);
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, rgba(89, 74, 193, 0.36), transparent 60%), var(--bg-soft);
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(63, 67, 144, 0.9);
+      padding: 1rem;
+      min-height: 420px;
+    }
+
+    /* Resumen */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .summary-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 0.7rem 0.8rem;
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      font-size: 0.8rem;
+    }
+
+    .summary-label {
+      color: var(--text-soft);
+      font-size: 0.78rem;
+    }
+
+    .summary-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .summary-note {
+      font-size: 0.72rem;
+      color: var(--accent-soft);
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.7rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .nota-tip {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .toolbar-right {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(10, 11, 40, 0.95);
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      border: 1px solid rgba(58, 62, 146, 0.9);
+      min-width: 220px;
+    }
+
+    .search-box input {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      width: 100%;
+    }
+
+    .search-box input::placeholder {
+      color: #7776a8;
+    }
+
+    /* Toggle precio */
+    .price-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(11, 12, 42, 0.96);
+      border: 1px solid rgba(90, 94, 191, 0.9);
+      font-size: 0.78rem;
+    }
+
+    .price-toggle-label {
+      color: var(--text-soft);
+      opacity: 0.65;
+    }
+
+    .price-toggle-label.active {
+      color: var(--accent-soft);
+      opacity: 1;
+      font-weight: 600;
+    }
+
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 22px;
+      border-radius: 999px;
+      background: #2a2c6a;
+      border: 1px solid #585acc;
+      padding: 0;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .switch-thumb {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(255, 122, 196, 0.9);
+      transition: transform 0.18s ease;
+    }
+
+    .switch.active .switch-thumb {
+      transform: translateX(18px);
+    }
+
+    /* Botones toolbar */
+    .btn-export,
+    .btn-new {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(147, 135, 255, 0.8);
+      background: rgba(18, 19, 60, 0.9);
+      color: var(--accent-soft);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      white-space: nowrap;
+    }
+
+    .btn-export:hover,
+    .btn-new:hover {
+      background: rgba(123, 92, 255, 0.25);
+    }
+
+    /* Filtros por tag */
+    .tag-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.78rem;
+      align-items: center;
+    }
+
+    .tag-filter-label {
+      color: var(--text-soft);
+      margin-right: 0.3rem;
+      padding-top: 0.1rem;
+    }
+
+    .tag-filter-pill {
+      padding: 0.18rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid rgba(70, 77, 178, 0.8);
+      background: rgba(24, 26, 71, 0.9);
+      color: var(--accent-soft);
+      font-size: 0.75rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+
+    .tag-filter-pill.active {
+      background: rgba(123, 92, 255, 0.25);
+      border-color: rgba(123, 92, 255, 0.95);
+      color: var(--primary-soft);
+      transform: translateY(-1px);
+    }
+
+    /* Tabla */
+    .table-wrapper {
+      background: var(--card-bg);
+      border-radius: 18px;
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.85);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    thead {
+      background: #181a3a;
+    }
+
+    th, td {
+      padding: 0.5rem 0.7rem;
+      text-align: left;
+    }
+
+    th {
+      color: #c0c2ff;
+      border-bottom: 1px solid #26294a;
+      white-space: nowrap;
+    }
+
+    /* columnas ordenables */
+    th[data-sort-col] {
+      cursor: pointer;
+      position: relative;
+    }
+
+    th[data-sort-col]::after {
+      content: "⇅";
+      font-size: 0.65rem;
+      opacity: 0.4;
+      margin-left: 0.35rem;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #11132a;
+    }
+
+    tbody tr:hover {
+      background: #181a3c;
+    }
+
+    td {
+      vertical-align: top;
+      color: var(--text-soft);
+    }
+
+    td strong {
+      color: var(--text-main);
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .tag-pill {
+      font-size: 0.72rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(24, 26, 71, 0.9);
+      border: 1px solid rgba(70, 77, 178, 0.8);
+      color: var(--accent-soft);
+      white-space: nowrap;
+    }
+
+    .tag-pill.main {
+      background: rgba(123, 92, 255, 0.18);
+      border-color: rgba(123, 92, 255, 0.9);
+      color: var(--primary-soft);
+    }
+
+    .nota {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+    }
+
+    .precio {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Stock control */
+    .stock-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(12, 13, 49, 0.95);
+      border-radius: 999px;
+      padding: 0.1rem 0.25rem;
+      border: 1px solid rgba(73, 76, 176, 0.9);
+    }
+
+    .stock-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(43, 46, 132, 0.9);
+      color: #f5e9ff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .stock-btn:hover {
+      background: rgba(93, 97, 201, 0.95);
+    }
+
+    .stock-unidades {
+      min-width: 18px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--text-main);
+      font-size: 0.8rem;
+    }
+
+    .edit-btn {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(140, 120, 255, 0.9);
+      background: rgba(40, 36, 120, 0.9);
+      color: var(--accent-soft);
+      cursor: pointer;
+    }
+
+    .edit-btn:hover {
+      background: rgba(78, 73, 190, 0.95);
+    }
+
+    .delete-btn {
+      margin-left: 0.3rem;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 122, 196, 0.9);
+      background: transparent;
+      color: var(--accent-soft);
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background: rgba(255, 122, 196, 0.15);
+    }
+
+    .error-msg {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #ffb1df;
+    }
+
+    /* Modal edición */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal-hidden {
+      display: none;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 620px;
+      background: #101124;
+      border-radius: 18px;
+      padding: 1rem 1.3rem 1.2rem;
+      border: 1px solid rgba(120, 110, 255, 0.9);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      border: none;
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem 0.8rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .modal-grid-full {
+      grid-column: 1 / -1;
+    }
+
+    .field-label {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      margin-bottom: 0.15rem;
+    }
+
+    .field-input,
+    .field-textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(76, 80, 170, 0.9);
+      background: #07081a;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      padding: 0.35rem 0.5rem;
+      outline: none;
+    }
+
+    .field-input:focus,
+    .field-textarea:focus {
+      border-color: var(--primary-soft);
+    }
+
+    .field-textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+
+    .btn-secondary,
+    .btn-primary {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border-color: rgba(95, 98, 176, 0.9);
+      color: var(--text-soft);
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, #7b5cff, #ff7ac4);
+      color: #0c0618;
+      font-weight: 600;
+    }
+
+    .btn-danger {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 122, 196, 0.9);
+      background: transparent;
+      color: var(--accent-soft);
+      cursor: pointer;
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 122, 196, 0.15);
+    }
+
+    /* Modal export */
+    .modal-small {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .export-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .export-option {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .export-option input {
+      accent-color: var(--primary);
+    }
+
+    @media (max-width: 980px) {
+      .app-shell {
+        padding: 1rem;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .summary-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="logo-inline">
+        <img src="/static/logo.png" class="logo-img" alt="logo 3D.IEGO" />
+        <div>
+          <div class="logo-text-main">3D.IEGO</div>
+          <div class="logo-text-sub">Gestión de stock</div>
+        </div>
+      </div>
+      <button class="btn-volver-dashboard" type="button" onclick="location.href='/'">
+        ← Volver al panel principal
+      </button>
+    </div>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="main-header">
+        <div class="main-title-group">
+          <div class="main-title">Stock de productos listos</div>
+          <div class="main-subtitle">
+            Lista de todo lo que ya está impreso, con tipo principal y sub tipo separados.
+          </div>
+        </div>
+        <span class="badge" id="badge-estado">Conectando a la base…</span>
+      </div>
+
+      <section class="panel">
+        <!-- Resumen -->
+        <div class="summary-row">
+          <div class="summary-card">
+            <div class="summary-label">Productos distintos</div>
+            <div class="summary-value" id="res-total-productos">0</div>
+            <div class="summary-note">Cada fila de la tabla.</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Unidades en stock</div>
+            <div class="summary-value" id="res-total-unidades">0</div>
+            <div class="summary-note">Solo cantidad en stock.</div>
+          </div>
+        </div>
+
+        <!-- Barra herramientas -->
+        <div class="toolbar">
+          <div class="nota-tip">
+            <strong>Tip:</strong> buscador + filtros por pieza y subtipo.
+          </div>
+          <div class="toolbar-right">
+            <div class="search-box">
+              <span style="font-size:0.85rem;">🔍</span>
+              <input
+                type="text"
+                id="search-input"
+                placeholder="Buscar por nombre, tipo, sub tipo o notas..."
+              />
+            </div>
+            <div class="price-toggle">
+              <span class="price-toggle-label active" id="lbl-normal">Precio normal</span>
+              <button class="switch" id="switch-precio" type="button">
+                <span class="switch-thumb"></span>
+              </button>
+              <span class="price-toggle-label" id="lbl-rev">Precio revendedor</span>
+            </div>
+            <button class="btn-new" type="button" id="btn-nuevo">
+              ➕ Nuevo producto
+            </button>
+            <button class="btn-export" type="button" id="btn-export">
+              ⬇ Exportar vista
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros por TIPO -->
+        <div class="tag-filter-bar" id="tipo-filter-bar"></div>
+
+        <!-- Filtros por SUB TIPO -->
+        <div class="tag-filter-bar" id="subtipo-filter-bar"></div>
+
+        <!-- Tabla -->
+        <div class="table-wrapper">
+          <table id="tabla-stock">
+            <thead>
+              <tr>
+                <th data-sort-col="nombre">Producto</th>
+                <th data-sort-col="tipo">Tipo</th>
+                <th data-sort-col="subtipo">Sub tipo</th>
+                <th data-sort-col="stock">Stock</th>
+                <th data-sort-col="precio">Precio</th>
+                <th>Notas</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="error-msg" id="tabla-error"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal edición / alta -->
+  <div id="edit-overlay" class="modal-overlay modal-hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="edit-modal-title">Editar pieza</div>
+        <button class="modal-close" type="button" id="btn-cerrar-modal">✕</button>
+      </div>
+      <form id="edit-form">
+        <input type="hidden" id="edit-id" />
+        <div class="modal-grid">
+          <div class="modal-grid-full">
+            <div class="field-label">Nombre de pieza</div>
+            <input id="edit-nombre" class="field-input" type="text" required />
+          </div>
+          <div>
+            <div class="field-label">Tipo (pieza)</div>
+            <input
+              id="edit-tipo"
+              class="field-input"
+              type="text"
+              placeholder="llavero, figura..."
+              list="tipo-suggestions"
+              required
+            />
+          </div>
+          <div>
+            <div class="field-label">Subtipo</div>
+            <input
+              id="edit-subtipo"
+              class="field-input"
+              type="text"
+              placeholder="brainrot, pokemon..."
+              list="subtipo-suggestions"
+            />
+          </div>
+          <div>
+            <div class="field-label">Stock</div>
+            <input id="edit-stock" class="field-input" type="number" min="0" step="1" />
+          </div>
+          <div>
+            <div class="field-label">Precio normal</div>
+            <input id="edit-precio" class="field-input" type="number" min="0" step="1" />
+          </div>
+          <div>
+            <div class="field-label">Precio revendedor</div>
+            <input id="edit-precio-rev" class="field-input" type="number" min="0" step="1" />
+          </div>
+          <div class="modal-grid-full">
+            <div class="field-label">Notas</div>
+            <textarea id="edit-notas" class="field-textarea"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-danger" id="btn-borrar">Borrar</button>
+          <button type="button" class="btn-secondary" id="btn-cancelar">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal export -->
+  <div id="export-overlay" class="modal-overlay modal-hidden">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <div class="modal-title">Exportar vista filtrada</div>
+        <button class="modal-close" type="button" id="btn-export-cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field-label">¿Qué columnas querés incluir?</div>
+        <div class="export-options">
+          <label class="export-option">
+            <input type="checkbox" id="exp-nombre" checked /> Nombre
+          </label>
+          <label class="export-option">
+            <input type="checkbox" id="exp-tipo" checked /> Tipo
+          </label>
+          <label class="export-option">
+            <input type="checkbox" id="exp-subtipo" checked /> Subtipo
+          </label>
+          <label class="export-option">
+            <input type="checkbox" id="exp-stock" checked /> Stock
+          </label>
+          <label class="export-option">
+            <input type="checkbox" id="exp-precio" checked /> Precio (según modo actual)
+          </label>
+          <label class="export-option">
+            <input type="checkbox" id="exp-notas" /> Notas
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-export-cancelar">Cancelar</button>
+        <button type="button" class="btn-primary" id="btn-export-confirmar">Descargar CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Datalists para sugerencias -->
+  <datalist id="tipo-suggestions"></datalist>
+  <datalist id="subtipo-suggestions"></datalist>
+
+  <script>
+    const searchInput = document.getElementById("search-input");
+    const tipoFilterBar = document.getElementById("tipo-filter-bar");
+    const subtipoFilterBar = document.getElementById("subtipo-filter-bar");
+    const badgeEstado = document.getElementById("badge-estado");
+    const errorBox = document.getElementById("tabla-error");
+
+    const switchPrecio = document.getElementById("switch-precio");
+    const lblNormal = document.getElementById("lbl-normal");
+    const lblRev = document.getElementById("lbl-rev");
+
+    const overlay = document.getElementById("edit-overlay");
+    const modalTitle = document.getElementById("edit-modal-title");
+    const btnCerrarModal = document.getElementById("btn-cerrar-modal");
+    const btnCancelar = document.getElementById("btn-cancelar");
+    const btnBorrar = document.getElementById("btn-borrar");
+    const editForm = document.getElementById("edit-form");
+    const btnNuevo = document.getElementById("btn-nuevo");
+
+    const exportOverlay = document.getElementById("export-overlay");
+    const btnExport = document.getElementById("btn-export");
+    const btnExportCerrar = document.getElementById("btn-export-cerrar");
+    const btnExportCancelar = document.getElementById("btn-export-cancelar");
+    const btnExportConfirmar = document.getElementById("btn-export-confirmar");
+
+    const tipoSuggestions = document.getElementById("tipo-suggestions");
+    const subtipoSuggestions = document.getElementById("subtipo-suggestions");
+
+    let modoPrecio = "normal";
+    let filas = [];
+    let productosOriginal = [];
+    const activeTipos = new Set();
+    const activeSubtipos = new Set();
+    const sortState = { col: null, dir: "asc" };
+
+    function escapeHtml(text) {
+      const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+      return String(text ?? "").replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function formatearPrecio(valor) {
+      if (valor == null) return "-";
+      return "$ " + Number(valor).toLocaleString("es-AR");
+    }
+
+    function renderTabla(productos) {
+      const tbody = document.querySelector("#tabla-stock tbody");
+      tbody.innerHTML = "";
+
+      productos.forEach(p => {
+        const tr = document.createElement("tr");
+        const tipo = (p.tipo_pieza || "").toLowerCase();
+        const subtipo = (p.subtipo || "").toLowerCase();
+        const stock = p.stock ?? 0;
+        const precioNormal = Number(p.precio ?? 0);
+        const precioRev = Number(p.precio_revendedor ?? 0);
+
+        tr.setAttribute("data-tipo", tipo);
+        tr.setAttribute("data-subtipo", subtipo);
+
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(p.nombre || "")}</strong></td>
+          <td>
+            <div class="tag-list">
+              <span class="tag-pill main">${escapeHtml(p.tipo_pieza || "-")}</span>
+            </div>
+          </td>
+          <td>
+            <div class="tag-list">
+              <span class="tag-pill">${escapeHtml(p.subtipo || "-")}</span>
+            </div>
+          </td>
+          <td>
+            <div class="stock-control">
+              <button class="stock-btn" data-delta="-1">−</button>
+              <span class="stock-unidades">${stock}</span>
+              <button class="stock-btn" data-delta="1">+</button>
+            </div>
+          </td>
+          <td class="precio"
+              data-precio-normal="${precioNormal}"
+              data-precio-revendedor="${precioRev}">
+            ${formatearPrecio(modoPrecio === "normal" ? precioNormal : precioRev)}
+          </td>
+          <td><span class="nota">${escapeHtml(p.notas || "")}</span></td>
+          <td>
+            <button class="edit-btn" data-id="${p.id}">Editar</button>
+            <button class="delete-btn" data-id="${p.id}" title="Borrar">🗑</button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      filas = Array.from(document.querySelectorAll("#tabla-stock tbody tr"));
+    }
+
+    function obtenerValoresUnicos(attr) {
+      const vals = new Set();
+      filas.forEach(tr => {
+        const v = (tr.getAttribute(attr) || "").trim();
+        if (v) vals.add(v);
+      });
+      return Array.from(vals).sort();
+    }
+
+    function crearFilterBar(barElement, labelText, values, activeSet) {
+      barElement.innerHTML = "";
+      if (!values.length) return;
+
+      const label = document.createElement("span");
+      label.className = "tag-filter-label";
+      label.textContent = labelText;
+      barElement.appendChild(label);
+
+      values.forEach(v => {
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "tag-filter-pill";
+        pill.textContent = v;
+        pill.dataset.value = v;
+
+        pill.addEventListener("click", () => {
+          if (activeSet.has(v)) {
+            activeSet.delete(v);
+            pill.classList.remove("active");
+          } else {
+            activeSet.add(v);
+            pill.classList.add("active");
+          }
+          aplicarFiltros();
+        });
+
+        barElement.appendChild(pill);
+      });
+    }
+
+    function actualizarResumen() {
+      const visibles = filas.filter(tr => tr.style.display !== "none");
+      const productos = visibles.length;
+      let unidades = 0;
+
+      visibles.forEach(tr => {
+        const u = tr.querySelector(".stock-unidades");
+        unidades += u ? parseInt(u.textContent || "0", 10) : 0;
+      });
+
+      document.getElementById("res-total-productos").textContent = productos;
+      document.getElementById("res-total-unidades").textContent = unidades;
+    }
+
+    function aplicarFiltros() {
+      const texto = searchInput.value.trim().toLowerCase();
+      const hayTipos = activeTipos.size > 0;
+      const haySubtipos = activeSubtipos.size > 0;
+
+      filas.forEach(tr => {
+        const textoFila = tr.innerText.toLowerCase();
+        const tipo = (tr.getAttribute("data-tipo") || "").toLowerCase();
+        const subtipo = (tr.getAttribute("data-subtipo") || "").toLowerCase();
+
+        const coincideTexto = !texto || textoFila.includes(texto);
+        const coincideTipo = !hayTipos || activeTipos.has(tipo);
+        const coincideSubtipo = !haySubtipos || activeSubtipos.has(subtipo);
+
+        tr.style.display = (coincideTexto && coincideTipo && coincideSubtipo) ? "" : "none";
+      });
+
+      actualizarResumen();
+    }
+
+    function actualizarPrecios() {
+      const celdas = document.querySelectorAll("td.precio");
+      celdas.forEach(td => {
+        const normal = Number(td.dataset.precioNormal || 0);
+        const rev = Number(td.dataset.precicioRevendedor || td.dataset.precioRevendedor || 0);
+        const valor = modoPrecio === "normal" ? normal : rev;
+        td.textContent = formatearPrecio(valor);
+      });
+    }
+
+    function actualizarDatalists() {
+      if (!productosOriginal) return;
+
+      const tipos = Array.from(
+        new Set(
+          productosOriginal
+            .map(p => (p.tipo_pieza || "").trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b, "es"));
+
+      const subtipos = Array.from(
+        new Set(
+          productosOriginal
+            .map(p => (p.subtipo || "").trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b, "es"));
+
+      tipoSuggestions.innerHTML = "";
+      tipos.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        tipoSuggestions.appendChild(opt);
+      });
+
+      subtipoSuggestions.innerHTML = "";
+      subtipos.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        subtipoSuggestions.appendChild(opt);
+      });
+    }
+
+    async function cargarProductos() {
+      try {
+        errorBox.textContent = "";
+        badgeEstado.textContent = "Conectando a la base…";
+
+        const res = await fetch("/api/productos");
+        if (!res.ok) throw new Error("Respuesta no OK de la API");
+        const productos = await res.json();
+
+        productosOriginal = productos.slice();
+        renderTabla(productosOriginal);
+        actualizarDatalists();
+
+        const tipos = obtenerValoresUnicos("data-tipo");
+        const subtipos = obtenerValoresUnicos("data-subtipo");
+
+        activeTipos.clear();
+        activeSubtipos.clear();
+        crearFilterBar(tipoFilterBar, "Filtro por pieza:", tipos, activeTipos);
+        crearFilterBar(subtipoFilterBar, "Filtro por subtipo:", subtipos, activeSubtipos);
+
+        aplicarFiltros();
+        badgeEstado.textContent = "Conectado a SQLite";
+      } catch (err) {
+        console.error(err);
+        badgeEstado.textContent = "Error de conexión";
+        errorBox.textContent = "No se pudieron cargar los productos desde la base. Ver consola para más detalles.";
+      }
+    }
+
+    searchInput.addEventListener("input", aplicarFiltros);
+
+    // +/- stock (visual)
+    document.querySelector("#tabla-stock tbody").addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".stock-btn");
+      if (!btn) return;
+      const delta = parseInt(btn.dataset.delta || "0", 10);
+      const fila = btn.closest("tr");
+      const span = fila.querySelector(".stock-unidades");
+      let valor = parseInt(span.textContent || "0", 10);
+      valor += delta;
+      if (valor < 0) valor = 0;
+      span.textContent = valor;
+      actualizarResumen();
+    });
+
+    // Toggle precio normal / revendedor
+    switchPrecio.addEventListener("click", () => {
+      if (modoPrecio === "normal") {
+        modoPrecio = "revendedor";
+        switchPrecio.classList.add("active");
+        lblNormal.classList.remove("active");
+        lblRev.classList.add("active");
+      } else {
+        modoPrecio = "normal";
+        switchPrecio.classList.remove("active");
+        lblNormal.classList.add("active");
+        lblRev.classList.remove("active");
+      }
+      actualizarPrecios();
+    });
+
+    // Sorting
+    function getSortValue(tr, col) {
+      const tds = tr.querySelectorAll("td");
+      switch (col) {
+        case "nombre":
+          return (tds[0]?.innerText || "").toLowerCase();
+        case "tipo":
+          return (tds[1]?.innerText || "").toLowerCase();
+        case "subtipo":
+          return (tds[2]?.innerText || "").toLowerCase();
+        case "stock":
+          return parseInt(tr.querySelector(".stock-unidades")?.textContent || "0", 10);
+        case "precio": {
+          const td = tds[4];
+          const normal = Number(td.dataset.precioNormal || 0);
+          const rev = Number(td.dataset.precioRevendedor || 0);
+          return modoPrecio === "normal" ? normal : rev;
+        }
+        default:
+          return (tds[0]?.innerText || "").toLowerCase();
+      }
+    }
+
+    function sortTabla(col) {
+      if (!filas.length) return;
+      if (sortState.col === col) {
+        sortState.dir = sortState.dir === "asc" ? "desc" : "asc";
+      } else {
+        sortState.col = col;
+        sortState.dir = "asc";
+      }
+      const dirMul = sortState.dir === "asc" ? 1 : -1;
+      const tbody = document.querySelector("#tabla-stock tbody");
+      const rows = filas.slice();
+
+      rows.sort((a, b) => {
+        const va = getSortValue(a, col);
+        const vb = getSortValue(b, col);
+
+        if (typeof va === "number" && typeof vb === "number") {
+          return (va - vb) * dirMul;
+        }
+        if (va < vb) return -1 * dirMul;
+        if (va > vb) return 1 * dirMul;
+        return 0;
+      });
+
+      rows.forEach(r => tbody.appendChild(r));
+      filas = rows;
+      aplicarFiltros();
+    }
+
+    document.querySelector("#tabla-stock thead").addEventListener("click", (ev) => {
+      const th = ev.target.closest("th[data-sort-col]");
+      if (!th) return;
+      const col = th.dataset.sortCol;
+      sortTabla(col);
+    });
+
+    // Abrir modal para EDITAR
+    document.querySelector("#tabla-stock tbody").addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".edit-btn");
+      if (!btn) return;
+      const id = Number(btn.dataset.id);
+      const prod = productosOriginal.find(p => p.id === id);
+      if (!prod) return;
+
+      document.getElementById("edit-id").value = prod.id;
+      document.getElementById("edit-nombre").value = prod.nombre || "";
+      document.getElementById("edit-tipo").value = prod.tipo_pieza || "";
+      document.getElementById("edit-subtipo").value = prod.subtipo || "";
+      document.getElementById("edit-stock").value = prod.stock ?? 0;
+      document.getElementById("edit-precio").value = prod.precio ?? 0;
+      document.getElementById("edit-precio-rev").value = prod.precio_revendedor ?? 0;
+      document.getElementById("edit-notas").value = prod.notas || "";
+
+      modalTitle.textContent = "Editar pieza";
+      btnBorrar.style.display = "inline-block";
+
+      overlay.classList.remove("modal-hidden");
+    });
+
+    // Borrar directo desde la fila
+    document.querySelector("#tabla-stock tbody").addEventListener("click", async (ev) => {
+      const btn = ev.target.closest(".delete-btn");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      if (!id) return;
+
+      const ok = confirm("¿Seguro que querés borrar esta pieza del stock?");
+      if (!ok) return;
+
+      try {
+        const res = await fetch(`/api/productos/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Error al borrar");
+        }
+        await cargarProductos();
+      } catch (e) {
+        alert("Error al borrar la pieza: " + e.message);
+        console.error(e);
+      }
+    });
+
+    // Abrir modal para NUEVO
+    btnNuevo.addEventListener("click", () => {
+      document.getElementById("edit-id").value = "";
+      document.getElementById("edit-nombre").value = "";
+      document.getElementById("edit-tipo").value = "";
+      document.getElementById("edit-subtipo").value = "";
+      document.getElementById("edit-stock").value = 0;
+      document.getElementById("edit-precio").value = 0;
+      document.getElementById("edit-precio-rev").value = 0;
+      document.getElementById("edit-notas").value = "";
+
+      modalTitle.textContent = "Nueva pieza";
+      btnBorrar.style.display = "none";
+
+      overlay.classList.remove("modal-hidden");
+    });
+
+    function cerrarModal() {
+      overlay.classList.add("modal-hidden");
+    }
+
+    btnCerrarModal.addEventListener("click", cerrarModal);
+    btnCancelar.addEventListener("click", cerrarModal);
+
+    btnBorrar.addEventListener("click", async () => {
+      const id = document.getElementById("edit-id").value;
+      if (!id) return;
+
+      const ok = confirm("¿Seguro que querés borrar esta pieza? Esto la saca del listado.");
+      if (!ok) return;
+
+      try {
+        const res = await fetch(`/api/productos/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Error al borrar");
+        }
+        cerrarModal();
+        await cargarProductos();
+      } catch (e) {
+        alert("Error al borrar la pieza: " + e.message);
+        console.error(e);
+      }
+    });
+
+    // Guardar (nuevo o editar)
+    editForm.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const id = document.getElementById("edit-id").value;
+
+      const payload = {
+        nombre: document.getElementById("edit-nombre").value.trim(),
+        tipo_pieza: document.getElementById("edit-tipo").value.trim(),
+        subtipo: document.getElementById("edit-subtipo").value.trim(),
+        stock: Number(document.getElementById("edit-stock").value || 0),
+        precio: Number(document.getElementById("edit-precio").value || 0),
+        precio_revendedor: Number(document.getElementById("edit-precio-rev").value || 0),
+        notas: document.getElementById("edit-notas").value.trim(),
+      };
+
+      const url = id ? `/api/productos/${id}` : "/api/productos";
+      const method = id ? "PUT" : "POST";
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Error al guardar");
+        }
+        cerrarModal();
+        await cargarProductos();
+      } catch (e) {
+        alert("Error al guardar cambios: " + e.message);
+        console.error(e);
+      }
+    });
+
+    // ----- Export -----
+    function abrirExportModal() {
+      exportOverlay.classList.remove("modal-hidden");
+    }
+
+    function cerrarExportModal() {
+      exportOverlay.classList.add("modal-hidden");
+    }
+
+    btnExport.addEventListener("click", abrirExportModal);
+    btnExportCerrar.addEventListener("click", cerrarExportModal);
+    btnExportCancelar.addEventListener("click", cerrarExportModal);
+
+    exportOverlay.addEventListener("click", (ev) => {
+      if (ev.target === exportOverlay) cerrarExportModal();
+    });
+
+    btnExportConfirmar.addEventListener("click", () => {
+      const incNombre = document.getElementById("exp-nombre").checked;
+      const incTipo = document.getElementById("exp-tipo").checked;
+      const incSubtipo = document.getElementById("exp-subtipo").checked;
+      const incStock = document.getElementById("exp-stock").checked;
+      const incPrecio = document.getElementById("exp-precio").checked;
+      const incNotas = document.getElementById("exp-notas").checked;
+
+      const visibles = filas.filter(tr => tr.style.display !== "none");
+
+      const cols = [];
+      if (incNombre) cols.push("Nombre");
+      if (incTipo) cols.push("Tipo");
+      if (incSubtipo) cols.push("Subtipo");
+      if (incStock) cols.push("Stock");
+      if (incPrecio) cols.push(modoPrecio === "normal" ? "Precio normal" : "Precio revendedor");
+      if (incNotas) cols.push("Notas");
+
+      const rows = [cols.join(";")];
+
+      visibles.forEach(tr => {
+        const tds = tr.querySelectorAll("td");
+        const data = [];
+
+        if (incNombre) data.push((tds[0]?.innerText || "").trim());
+        if (incTipo) data.push((tds[1]?.innerText || "").trim());
+        if (incSubtipo) data.push((tds[2]?.innerText || "").trim());
+        if (incStock) data.push((tds[3]?.innerText || "").trim());
+        if (incPrecio) data.push((tds[4]?.innerText || "").trim());
+        if (incNotas) data.push((tds[5]?.innerText || "").trim());
+
+        rows.push(data.map(v => `"${v.replace(/"/g, '""')}"`).join(";"));
+      });
+
+      const csv = rows.join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "stock_export.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      cerrarExportModal();
+    });
+
+    // Arranque
+    cargarProductos();
+  </script>
+</body>
+</html>

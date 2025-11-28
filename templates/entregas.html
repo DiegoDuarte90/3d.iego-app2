@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D.IEGO · Entregas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --bg: #050411;
+      --bg-soft: #0f1020;
+      --primary: #7b5cff;
+      --primary-soft: #9883ff;
+      --accent: #ff7ac4;
+      --accent-soft: #ffb1df;
+      --text-main: #f7f4ff;
+      --text-soft: #a6a4c9;
+      --card-bg: #121328;
+      --border-soft: #26294a;
+      --danger: #ff4c6a;
+      --success: #4cd964;
+      --radius-xl: 22px;
+      --radius-md: 14px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.55);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #17162e 0, #050411 55%);
+      color: var(--text-main);
+      padding: 32px 18px 40px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .layout {
+      width: 100%;
+      max-width: 1180px;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 26px;
+    }
+
+    h1 {
+      font-size: 32px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      border-radius: 999px;
+      padding: 2px 14px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #050411;
+      text-transform: none;
+      letter-spacing: 0.03em;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-soft);
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.4fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 900px) {
+      .section-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #1c1b3b 0, #111225 38%, #080816 100%);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-soft);
+      box-shadow: var(--shadow-soft);
+      padding: 20px 20px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-top: 2px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(10, 255, 196, 0.07);
+      border: 1px solid rgba(10, 255, 196, 0.45);
+      color: #8affdd;
+      white-space: nowrap;
+    }
+
+    .pill.dot::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #8affdd;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1.7fr 1.3fr;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: flex-end;
+    }
+
+    .form-row-single {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-soft);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    select,
+    input[type="text"],
+    input[type="number"],
+    input[type="date"] {
+      width: 100%;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-soft);
+      background: rgba(8, 9, 22, 0.94);
+      color: var(--text-main);
+      padding: 9px 12px;
+      font-size: 13px;
+      outline: none;
+      transition: border 0.18s ease, box-shadow 0.18s ease,
+        background 0.18s ease, transform 0.06s ease;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--primary-soft);
+      box-shadow: 0 0 0 1px rgba(123, 92, 255, 0.4);
+      background: #111226;
+      transform: translateY(-0.5px);
+    }
+
+    select {
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, #8a86c7 50%),
+        linear-gradient(135deg, #8a86c7 50%, transparent 50%);
+      background-position: calc(100% - 16px) 12px, calc(100% - 11px) 12px;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      padding-right: 30px;
+    }
+
+    .client-type-toggle {
+      display: inline-flex;
+      background: rgba(10, 10, 28, 0.96);
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .toggle-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-soft);
+      background: transparent;
+      transition: background 0.16s ease, color 0.16s ease,
+        transform 0.08s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toggle-btn span {
+      font-size: 13px;
+    }
+
+    .toggle-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #050411;
+      transform: translateY(-0.5px);
+    }
+
+    .toggle-btn.active span {
+      transform: translateY(0.3px);
+    }
+
+    .helper-text {
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .helper-text strong {
+      color: var(--primary-soft);
+    }
+
+    .badge-selected {
+      margin-top: 10px;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      border: 1px dashed rgba(138, 134, 199, 0.7);
+      background: rgba(11, 13, 37, 0.9);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-soft);
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #8affdd;
+    }
+
+    .input-inline-row {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: flex-end;
+    }
+
+    @media (max-width: 900px) {
+      .input-inline-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) 0.6fr 1.1fr 0.9fr;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    @media (max-width: 900px) {
+      .grid-4 {
+        grid-template-columns: 1fr 1fr;
+        grid-auto-rows: auto;
+      }
+    }
+
+    .stepper-wrapper {
+      display: grid;
+      grid-template-columns: auto 24px 24px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-soft);
+      background: rgba(8, 9, 22, 0.94);
+      overflow: hidden;
+      align-items: stretch;
+    }
+
+    .stepper-wrapper input[type="number"] {
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      padding: 9px 10px;
+    }
+
+    .step-btn {
+      border: none;
+      border-left: 1px solid var(--border-soft);
+      background: rgba(10, 11, 28, 0.96);
+      color: var(--text-soft);
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s ease, color 0.12s ease,
+        transform 0.06s ease;
+    }
+
+    .step-btn:hover {
+      background: rgba(123, 92, 255, 0.16);
+      color: var(--primary-soft);
+      transform: translateY(-0.4px);
+    }
+
+    .readonly-pill {
+      border-radius: var(--radius-md);
+      border: 1px dashed rgba(138, 134, 199, 0.7);
+      background: rgba(15, 15, 40, 0.9);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      min-width: 160px;
+    }
+
+    .readonly-pill span {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.8;
+    }
+
+    .readonly-pill strong {
+      font-size: 18px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #050411;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      transition: transform 0.08s ease, box-shadow 0.14s ease,
+        filter 0.12s ease;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    .btn-primary .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #050411;
+      opacity: 0.7;
+    }
+
+    .status-line {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pill-ok,
+    .status-pill-alert {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 4px 9px;
+      border: 1px solid transparent;
+    }
+
+    .status-pill-ok {
+      border-color: rgba(76, 217, 100, 0.55);
+      background: rgba(76, 217, 100, 0.07);
+      color: var(--success);
+    }
+
+    .status-pill-alert {
+      border-color: rgba(255, 76, 106, 0.7);
+      background: rgba(255, 76, 106, 0.09);
+      color: var(--danger);
+    }
+
+    .table-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+    }
+
+    .table-wrapper {
+      border-radius: 18px;
+      border: 1px solid var(--border-soft);
+      overflow: hidden;
+      background: radial-gradient(
+        circle at top left,
+        #191a3a 0,
+        #0b0c1e 42%,
+        #050511 100%
+      );
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead {
+      background: rgba(10, 11, 32, 0.98);
+    }
+
+    th,
+    td {
+      padding: 9px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(30, 32, 64, 0.85);
+    }
+
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-soft);
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(10, 10, 28, 0.55);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .mini-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(123, 92, 255, 0.24);
+      color: var(--primary-soft);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      background: rgba(16, 17, 40, 0.96);
+      border: 1px solid rgba(72, 78, 140, 0.8);
+      color: var(--text-soft);
+      gap: 6px;
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #8affdd;
+    }
+
+    .btn-icon-danger {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 76, 106, 0.65);
+      padding: 4px 7px;
+      background: rgba(66, 15, 28, 0.7);
+      cursor: pointer;
+      font-size: 13px;
+      color: #ff9aac;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn-icon-danger:hover {
+      transform: translateY(-0.5px);
+      filter: brightness(1.05);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+    }
+
+    .btn-icon-download {
+      border-radius: 999px;
+      border: 1px solid rgba(138, 134, 199, 0.8);
+      padding: 4px 10px;
+      background: rgba(30, 24, 70, 0.9);
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--accent-soft);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn-icon-download:hover {
+      transform: translateY(-0.5px);
+      filter: brightness(1.05);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+    }
+
+    .summary-line {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-soft);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .summary-line strong {
+      color: var(--primary-soft);
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      border: 1px solid rgba(138, 134, 199, 0.75);
+      padding: 8px 16px;
+      font-size: 13px;
+      background: rgba(12, 13, 32, 0.96);
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      transition: transform 0.08s ease, box-shadow 0.14s ease,
+        border-color 0.14s ease;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.65);
+      border-color: var(--primary-soft);
+    }
+
+    .history-title {
+      font-size: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .history-sub {
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-bottom: 14px;
+    }
+
+    .empty-state {
+      padding: 18px 14px;
+      border-radius: 16px;
+      border: 1px dashed rgba(138, 134, 199, 0.7);
+      background: rgba(12, 13, 32, 0.96);
+      font-size: 13px;
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .empty-state span {
+      font-size: 18px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .rev-link {
+      border: none;
+      background: none;
+      color: var(--accent-soft);
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+    }
+    .rev-link:hover {
+      text-decoration: underline;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-header-back {
+      border-radius: 999px;
+      border: 1px solid rgba(138, 134, 199, 0.75);
+      padding: 6px 14px;
+      font-size: 13px;
+      background: rgba(12, 13, 32, 0.96);
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      transition: transform 0.08s ease, box-shadow 0.14s ease,
+        border-color 0.14s ease;
+    }
+
+    .btn-header-back:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.65);
+      border-color: var(--primary-soft);
+    }
+
+    /* Total entrega más grande y destacado */
+    #resumenTotal {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary-soft);
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <div>
+        <h1>
+          Entregas
+          <span>Panel de pedidos</span>
+        </h1>
+        <p class="subtitle">
+          Registrá entregas a revendedores o particulares, descontando del stock actual
+          y dejando un historial ordenado.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button
+          type="button"
+          class="btn-header-back"
+          onclick="location.href='/'"
+        >
+          ← Volver al panel principal
+        </button>
+      </div>
+    </header>
+
+
+    <!-- Selección de cliente + Agregar pieza -->
+    <div class="section-grid">
+      <!-- Selección cliente -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Seleccione cliente</div>
+            <div class="card-subtitle">
+              Elegí si la entrega es para un revendedor (ya cargado) o para un particular.
+            </div>
+          </div>
+          <div class="pill dot">
+            Cliente · Entrega actual
+          </div>
+        </div>
+
+        <div class="form-row-single">
+          <div>
+            <span class="field-label">Tipo de cliente</span>
+            <div class="client-type-toggle" id="clientTypeToggle">
+              <button type="button" class="toggle-btn active" data-type="revendedor">
+                <span>Revendedor</span>
+              </button>
+              <button type="button" class="toggle-btn" data-type="particular">
+                <span>Particular</span>
+              </button>
+            </div>
+            <input type="hidden" id="clientType" value="revendedor" />
+            <p class="helper-text">
+              Podés cambiar el tipo en cualquier momento antes de guardar la entrega.
+            </p>
+          </div>
+        </div>
+
+        <div class="form-row-single" id="revendedorWrapper">
+          <div>
+            <label class="field-label" for="revendedorSelect">Revendedor</label>
+            <select id="revendedorSelect">
+              <option value="">— Seleccionar revendedor —</option>
+              {% for r in revendedores %}
+                <option value="{{ r.id }}">
+                  {{ r.id }} · {{ r.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+            <p class="helper-text">
+              Solo se listan los revendedores que ya están cargados en el sistema.
+            </p>
+          </div>
+        </div>
+
+        <div class="form-row-single hidden" id="particularWrapper">
+          <div>
+            <label class="field-label" for="particularNombre">Nombre del particular</label>
+            <input
+              type="text"
+              id="particularNombre"
+              placeholder="Ej: Florencia, Cliente feria Munro"
+            />
+            <p class="helper-text">
+              No hace falta que esté cargado previamente. El nombre queda asociado a esta entrega.
+            </p>
+          </div>
+        </div>
+
+        <div id="clienteSeleccionado" class="badge-selected">
+          <span class="badge-dot"></span>
+          <span>No hay cliente seleccionado todavía.</span>
+        </div>
+      </section>
+
+      <!-- Agregar pieza -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Agregar pieza</div>
+            <div class="card-subtitle">
+              Elegí una pieza del stock o cargá una nueva pieza personalizada.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row-single">
+          <div>
+            <label class="field-label" for="buscarPieza">Buscar pieza</label>
+            <input
+              type="text"
+              id="buscarPieza"
+              placeholder="Buscá por nombre, categoría o subcategoría"
+            />
+          </div>
+        </div>
+
+        <div class="form-row-single">
+          <div>
+            <label class="field-label" for="piezaSelect">Pieza / Descripción</label>
+            <select id="piezaSelect">
+              <option value="">— Seleccionar pieza en stock —</option>
+              {% for p in piezas_en_stock %}
+                <option
+                  value="{{ p.id }}"
+                  data-stock="{{ p.stock }}"
+                  data-nombre="{{ p.nombre }}"
+                  data-categoria="{{ p.tipo_pieza }}"
+                  data-subcategoria="{{ p.subtipo }}"
+                  data-precio-sugerido="{{ p.precio|default(0) }}"
+                >
+                  {{ p.nombre }} · Stock: {{ p.stock }}
+                </option>
+              {% endfor %}
+              <option value="custom">— Otra (personalizada) —</option>
+            </select>
+            <p class="helper-text">
+              Si elegís <strong>Otra (personalizada)</strong>, escribí el nombre de la pieza
+              abajo. El stock empieza en 0 (no afecta el stock global).
+            </p>
+            <p class="helper-text" id="piezaInfo">
+              No hay pieza seleccionada todavía.
+            </p>
+          </div>
+        </div>
+
+        <div class="form-row-single hidden" id="piezaCustomWrapper">
+          <div>
+            <label class="field-label" for="piezaCustomNombre">Nombre de la pieza personalizada</label>
+            <input
+              type="text"
+              id="piezaCustomNombre"
+              placeholder="Ej: Llavero especial · Logo cliente"
+            />
+          </div>
+        </div>
+
+        <div class="input-inline-row">
+          <div>
+            <label class="field-label" for="fechaEntrega">Fecha</label>
+            <input type="date" id="fechaEntrega" />
+          </div>
+          <div>
+            <label class="field-label">Cantidad</label>
+            <div class="stepper-wrapper">
+              <input
+                type="number"
+                id="cantidadPieza"
+                min="1"
+                value="1"
+              />
+              <button type="button" class="step-btn" data-target="cantidadPieza" data-step="-1">
+                –
+              </button>
+              <button type="button" class="step-btn" data-target="cantidadPieza" data-step="1">
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-4">
+          <div>
+            <label class="field-label">Precio x pieza</label>
+            <div class="stepper-wrapper">
+              <input
+                type="number"
+                id="precioPieza"
+                min="0"
+                step="0.01"
+                value="0"
+              />
+              <button type="button" class="step-btn" data-target="precioPieza" data-step="-10">
+                –
+              </button>
+              <button type="button" class="step-btn" data-target="precioPieza" data-step="10">
+                +
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Total</label>
+            <div class="readonly-pill" id="totalPiezaDisplay">
+              <span>Total</span>
+              <strong>$ 0,00</strong>
+            </div>
+          </div>
+
+          <div style="align-self: flex-end;">
+            <button type="button" class="btn-primary" id="agregarPiezaBtn">
+              <span class="dot"></span>
+              Agregar pieza
+            </button>
+          </div>
+        </div>
+
+        <div class="status-line" id="stockStatusLine">
+          <div class="status-pill-alert hidden" id="stockAlert">
+            ⚠ Sin stock suficiente (se permite la entrega, el stock quedará en 0 o negativo).
+          </div>
+          <div class="status-pill-ok hidden" id="stockOk">
+            ✓ Stock suficiente para esta pieza.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Piezas agregadas -->
+    <section class="card" id="piezasAgregadasCard">
+      <div class="table-card-header">
+        <div>
+          <div class="card-title">Piezas agregadas</div>
+          <div class="card-subtitle">
+            Ítems cargados para la entrega actual. Podés ajustar cantidad o precio antes de guardar.
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="piezasTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Pieza</th>
+              <th>Cant.</th>
+              <th>Precio</th>
+              <th>Total</th>
+              <th>Estado</th>
+              <th>Borrar</th>
+            </tr>
+          </thead>
+          <tbody id="piezasTableBody">
+            <!-- Filas generadas por JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="summary-line">
+        <div>
+          Ítems: <strong id="resumenItems">0</strong> ·
+          Cantidad total de piezas: <strong id="resumenCantidad">0</strong>
+        </div>
+        <div>
+          Total entrega: <strong id="resumenTotal">$ 0,00</strong>
+        </div>
+      </div>
+
+      <button type="button" class="btn-secondary" id="guardarEntregaBtn">
+        Guardar entrega
+      </button>
+    </section>
+
+    <!-- Historial de entregas -->
+    <section class="card">
+      <div class="history-title">Historial de entregas</div>
+      <div class="history-sub">
+        Últimas entregas registradas. Ideal para revisar qué se llevó cada cliente y cuánto se cobró.
+      </div>
+
+      {% if historial_entregas and historial_entregas|length > 0 %}
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Tipo</th>
+                <th>Piezas</th>
+                <th>Total</th>
+                <th>Detalle</th>
+                <th>PDF</th>
+                <th>Borrar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in historial_entregas %}
+                <tr>
+                  <td>{{ e.fecha }}</td>
+                  <td>
+                    {% if e.tipo_cliente == 'revendedor' and e.revendedor_id %}
+                      <button type="button"
+                              class="rev-link"
+                              data-rev-id="{{ e.revendedor_id }}">
+                        {{ e.cliente_nombre }}
+                      </button>
+                    {% else %}
+                      {{ e.cliente_nombre }}
+                    {% endif %}
+                  </td>
+                  <td>{{ e.tipo_cliente|capitalize }}</td>
+                  <td>{{ e.cantidad_total }}</td>
+                  <td>$ {{ "%.2f"|format(e.total) }}</td>
+                  <td>
+                    <button type="button" class="btn-icon-danger"
+                            onclick="verDetalleEntrega(Number('{{ e.id }}'))">
+                      Ver
+                    </button>
+                  </td>
+                  <td>
+                    <a href="/entregas/{{ e.id }}/pdf" class="btn-icon-download" target="_blank">
+                      PDF
+                    </a>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn-icon-danger"
+                      onclick="borrarEntrega({{ e.id }})">
+                      🗑
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <span>🗂️</span>
+          <div>
+            Todavía no hay entregas registradas.  
+            Cuando guardes la primera, va a aparecer acá con todo el detalle.
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <script>
+    // --- helper formato moneda con miles y coma decimal ---
+    function formatoMoneda(valor) {
+      return Number(valor || 0).toLocaleString("es-AR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    let currentDetalleEntregaId = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const clientTypeToggle = document.getElementById("clientTypeToggle");
+      const clientTypeInput = document.getElementById("clientType");
+      const revendedorWrapper = document.getElementById("revendedorWrapper");
+      const particularWrapper = document.getElementById("particularWrapper");
+      const revendedorSelect = document.getElementById("revendedorSelect");
+      const particularNombre = document.getElementById("particularNombre");
+      const clienteSeleccionado = document.getElementById("clienteSeleccionado");
+
+      const buscarPieza = document.getElementById("buscarPieza");
+      const piezaSelect = document.getElementById("piezaSelect");
+      const piezaCustomWrapper = document.getElementById("piezaCustomWrapper");
+      const piezaCustomNombre = document.getElementById("piezaCustomNombre");
+      const piezaInfo = document.getElementById("piezaInfo");
+      const fechaEntrega = document.getElementById("fechaEntrega");
+      const cantidadPieza = document.getElementById("cantidadPieza");
+      const precioPieza = document.getElementById("precioPieza");
+      const totalPiezaDisplay = document.getElementById("totalPiezaDisplay");
+      const agregarPiezaBtn = document.getElementById("agregarPiezaBtn");
+
+      const stockAlert = document.getElementById("stockAlert");
+      const stockOk = document.getElementById("stockOk");
+
+      const piezasTableBody = document.getElementById("piezasTableBody");
+      const resumenItems = document.getElementById("resumenItems");
+      const resumenCantidad = document.getElementById("resumenCantidad");
+      const resumenTotal = document.getElementById("resumenTotal");
+
+      // Set fecha por defecto a hoy
+      if (fechaEntrega) {
+        const today = new Date().toISOString().split("T")[0];
+        fechaEntrega.value = today;
+      }
+
+      // Mapa simple de stock por pieza
+      const stockPorPieza = {};
+      piezaSelect.querySelectorAll("option").forEach((opt) => {
+        const id = opt.value;
+        if (!id || id === "custom") return;
+        const stock = Number(opt.dataset.stock || 0);
+        stockPorPieza[id] = stock;
+      });
+
+      // Toggle tipo cliente
+      clientTypeToggle.addEventListener("click", (ev) => {
+        const btn = ev.target.closest(".toggle-btn");
+        if (!btn) return;
+
+        const type = btn.dataset.type;
+        clientTypeInput.value = type;
+
+        clientTypeToggle
+          .querySelectorAll(".toggle-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (type === "revendedor") {
+          revendedorWrapper.classList.remove("hidden");
+          particularWrapper.classList.add("hidden");
+        } else {
+          revendedorWrapper.classList.add("hidden");
+          particularWrapper.classList.remove("hidden");
+        }
+        actualizarBadgeCliente();
+      });
+
+      revendedorSelect.addEventListener("change", actualizarBadgeCliente);
+      particularNombre.addEventListener("input", actualizarBadgeCliente);
+
+      function actualizarBadgeCliente() {
+        const tipo = clientTypeInput.value;
+        const badgeSpan = clienteSeleccionado.querySelector("span:last-child");
+
+        if (tipo === "revendedor") {
+          const selected = revendedorSelect.options[revendedorSelect.selectedIndex];
+          if (selected && selected.value) {
+            badgeSpan.textContent = `Cliente seleccionado: Revendedor ${selected.textContent.trim()}.`;
+          } else {
+            badgeSpan.textContent = "No hay cliente seleccionado todavía.";
+          }
+        } else {
+          const nombre = particularNombre.value.trim();
+          if (nombre) {
+            badgeSpan.textContent = `Cliente seleccionado: Particular ${nombre}.`;
+          } else {
+            badgeSpan.textContent =
+              "Escribí el nombre del particular para asociar la entrega.";
+          }
+        }
+      }
+
+      // --- Buscador de piezas ---
+      buscarPieza.addEventListener("input", () => {
+        const q = buscarPieza.value.toLowerCase().trim();
+
+        piezaSelect.querySelectorAll("option").forEach((opt) => {
+          if (!opt.value || opt.value === "custom") {
+            opt.hidden = false;
+            return;
+          }
+
+          const nombre = (opt.dataset.nombre || opt.textContent || "").toLowerCase();
+          const categoria = (opt.dataset.categoria || "").toLowerCase();
+          const subcategoria = (opt.dataset.subcategoria || "").toLowerCase();
+
+          const match =
+            !q ||
+            nombre.includes(q) ||
+            categoria.includes(q) ||
+            subcategoria.includes(q);
+
+          opt.hidden = !match;
+        });
+
+        // Si la opción seleccionada quedó oculta, reseteo selección
+        const selected = piezaSelect.options[piezaSelect.selectedIndex];
+        if (selected && selected.hidden) {
+          piezaSelect.selectedIndex = 0;
+          piezaCustomWrapper.classList.add("hidden");
+          piezaCustomNombre.value = "";
+          precioPieza.value = 0;
+          actualizarTotal();
+          stockAlert.classList.add("hidden");
+          stockOk.classList.add("hidden");
+          actualizarInfoPiezaSeleccionada();
+        }
+      });
+
+      // Mostrar/ocultar campo pieza personalizada
+      piezaSelect.addEventListener("change", () => {
+        const value = piezaSelect.value;
+        if (value === "custom") {
+          piezaCustomWrapper.classList.remove("hidden");
+        } else {
+          piezaCustomWrapper.classList.add("hidden");
+          piezaCustomNombre.value = "";
+        }
+
+        // Precio sugerido si viene del producto
+        const selected = piezaSelect.options[piezaSelect.selectedIndex];
+        if (selected && selected.dataset.precioSugerido) {
+          const sugerido = Number(selected.dataset.precioSugerido || 0);
+          if (sugerido > 0) {
+            precioPieza.value = sugerido.toFixed(2);
+          }
+        }
+
+        actualizarTotal();
+        chequearStock();
+        actualizarInfoPiezaSeleccionada();
+      });
+
+      function actualizarInfoPiezaSeleccionada() {
+        if (!piezaInfo) return;
+
+        const value = piezaSelect.value;
+        if (!value) {
+          piezaInfo.textContent = "No hay pieza seleccionada todavía.";
+          return;
+        }
+
+        if (value === "custom") {
+          piezaInfo.textContent = "Pieza personalizada · no afecta al stock global.";
+          return;
+        }
+
+        const opt = piezaSelect.options[piezaSelect.selectedIndex];
+        const categoria = opt.dataset.categoria || "Sin categoría";
+        const subcategoria = opt.dataset.subcategoria || "";
+        const stock = opt.dataset.stock || "";
+        const partes = [`Categoría: ${categoria}`];
+        if (subcategoria) partes.push(`Subcategoría: ${subcategoria}`);
+        if (stock !== "") partes.push(`Stock actual: ${stock}`);
+        piezaInfo.textContent = partes.join(" · ");
+      }
+
+      // Steppers
+      document.querySelectorAll(".step-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.dataset.target;
+          const step = Number(btn.dataset.step || 1);
+          const input = document.getElementById(targetId);
+          if (!input) return;
+
+          let value = Number(input.value || 0);
+          value += step;
+          if (targetId === "cantidadPieza" && value < 1) value = 1;
+          if (targetId === "precioPieza" && value < 0) value = 0;
+          input.value = value;
+
+          if (targetId === "cantidadPieza" || targetId === "precioPieza") {
+            actualizarTotal();
+            chequearStock();
+          }
+        });
+      });
+
+      cantidadPieza.addEventListener("input", () => {
+        if (Number(cantidadPieza.value) < 1) cantidadPieza.value = 1;
+        actualizarTotal();
+        chequearStock();
+      });
+
+      precioPieza.addEventListener("input", () => {
+        if (Number(precioPieza.value) < 0) precioPieza.value = 0;
+        actualizarTotal();
+      });
+
+      function actualizarTotal() {
+        const cantidad = Number(cantidadPieza.value || 0);
+        const precio = Number(precioPieza.value || 0);
+        const total = cantidad * precio;
+        totalPiezaDisplay.querySelector("strong").textContent =
+          `$ ${formatoMoneda(total)}`;
+      }
+
+      function chequearStock() {
+        const piezaId = piezaSelect.value;
+        const cantidad = Number(cantidadPieza.value || 0);
+
+        stockAlert.classList.add("hidden");
+        stockOk.classList.add("hidden");
+
+        if (!piezaId || piezaId === "custom") return;
+
+        const stockDisponible = stockPorPieza[piezaId] ?? 0;
+        if (cantidad > stockDisponible) {
+          stockAlert.classList.remove("hidden");
+        } else {
+          stockOk.classList.remove("hidden");
+        }
+      }
+
+      // Estado del pedido
+      const piezasAgregadas = [];
+
+      agregarPiezaBtn.addEventListener("click", () => {
+        const piezaId = piezaSelect.value;
+        if (!piezaId) {
+          alert("Elegí una pieza en stock o la opción personalizada.");
+          return;
+        }
+
+        let nombrePieza = "";
+        let categoria = "";
+        let subcategoria = "";
+
+        if (piezaId === "custom") {
+          const nombreCustom = piezaCustomNombre.value.trim();
+          if (!nombreCustom) {
+            alert("Escribí el nombre de la pieza personalizada.");
+            return;
+          }
+          nombrePieza = nombreCustom;
+          categoria = "Personalizada";
+        } else {
+          const opt = piezaSelect.options[piezaSelect.selectedIndex];
+          nombrePieza = opt.dataset.nombre || opt.textContent.trim();
+          categoria = opt.dataset.categoria || "Stock";
+          subcategoria = opt.dataset.subcategoria || "";
+        }
+
+        const fecha = fechaEntrega.value;
+        const cantidad = Number(cantidadPieza.value || 0);
+        const precio = Number(precioPieza.value || 0);
+        if (cantidad <= 0) {
+          alert("La cantidad debe ser mayor a 0.");
+          return;
+        }
+
+        const total = cantidad * precio;
+
+        // Actualizar stock local
+        if (piezaId !== "custom") {
+          const disponible = stockPorPieza[piezaId] ?? 0;
+          const nuevo = disponible - cantidad;
+          stockPorPieza[piezaId] = nuevo;
+        }
+
+        piezasAgregadas.push({
+          piezaId,
+          nombrePieza,
+          categoria,
+          subcategoria,
+          fecha,
+          cantidad,
+          precio,
+          total,
+        });
+
+        renderPiezasTable();
+        actualizarTotal();
+        chequearStock();
+      });
+
+      function renderPiezasTable() {
+        piezasTableBody.innerHTML = "";
+        let totalEntrega = 0;
+        let totalItems = piezasAgregadas.length;
+        let totalCantidad = 0;
+
+        piezasAgregadas.forEach((item, index) => {
+          totalEntrega += item.total;
+          totalCantidad += item.cantidad;
+
+          const tr = document.createElement("tr");
+
+          const tdIndex = document.createElement("td");
+          const badge = document.createElement("div");
+          badge.className = "mini-badge";
+          badge.textContent = index + 1;
+          tdIndex.appendChild(badge);
+
+          const tdNombre = document.createElement("td");
+          tdNombre.textContent = item.nombrePieza;
+          if (item.categoria || item.subcategoria) {
+            const info = document.createElement("div");
+            info.style.fontSize = "11px";
+            info.style.color = "#a6a4c9";
+            info.textContent = [item.categoria, item.subcategoria]
+              .filter(Boolean)
+              .join(" · ");
+            tdNombre.appendChild(info);
+          }
+
+          const tdCant = document.createElement("td");
+          tdCant.textContent = item.cantidad;
+
+          const tdPrecio = document.createElement("td");
+          tdPrecio.textContent = `$ ${formatoMoneda(item.precio)}`;
+
+          const tdTotal = document.createElement("td");
+          tdTotal.textContent = `$ ${formatoMoneda(item.total)}`;
+
+          const tdEstado = document.createElement("td");
+          const chip = document.createElement("div");
+          chip.className = "chip";
+          const dot = document.createElement("span");
+          dot.className = "chip-dot";
+          chip.appendChild(dot);
+
+          let textoEstado = "";
+          if (item.piezaId === "custom") {
+            textoEstado = "Personalizada · sin stock";
+          } else {
+            const actual = stockPorPieza[item.piezaId] ?? 0;
+            if (actual >= 0) {
+              textoEstado = `Stock ✓ · ${actual} restantes`;
+            } else {
+              textoEstado = `Stock en negativo (${actual})`;
+            }
+          }
+          chip.appendChild(document.createTextNode(textoEstado));
+          tdEstado.appendChild(chip);
+
+          const tdBorrar = document.createElement("td");
+          const btnDel = document.createElement("button");
+          btnDel.type = "button";
+          btnDel.className = "btn-icon-danger";
+          btnDel.textContent = "✕";
+          btnDel.addEventListener("click", () => {
+            const removed = piezasAgregadas.splice(index, 1)[0];
+            if (removed && removed.piezaId && removed.piezaId !== "custom") {
+              stockPorPieza[removed.piezaId] =
+                (stockPorPieza[removed.piezaId] ?? 0) + removed.cantidad;
+            }
+            renderPiezasTable();
+            chequearStock();
+          });
+          tdBorrar.appendChild(btnDel);
+
+          tr.appendChild(tdIndex);
+          tr.appendChild(tdNombre);
+          tr.appendChild(tdCant);
+          tr.appendChild(tdPrecio);
+          tr.appendChild(tdTotal);
+          tr.appendChild(tdEstado);
+          tr.appendChild(tdBorrar);
+
+          piezasTableBody.appendChild(tr);
+        });
+
+        resumenItems.textContent = totalItems;
+        resumenCantidad.textContent = totalCantidad;
+        resumenTotal.textContent = `$ ${formatoMoneda(totalEntrega)}`;
+      }
+
+      // Guardar entrega
+      const guardarEntregaBtn = document.getElementById("guardarEntregaBtn");
+      guardarEntregaBtn.addEventListener("click", () => {
+        if (piezasAgregadas.length === 0) {
+          alert("Agregá al menos una pieza antes de guardar la entrega.");
+          return;
+        }
+
+        const tipoCliente = clientTypeInput.value;
+        let clienteNombre = "";
+        let revendedorId = null;
+
+        if (tipoCliente === "revendedor") {
+          const opt = revendedorSelect.options[revendedorSelect.selectedIndex];
+          if (!opt || !opt.value) {
+            alert("Elegí un revendedor antes de guardar.");
+            return;
+          }
+          revendedorId = parseInt(opt.value, 10);
+          clienteNombre = opt.textContent.trim();
+        } else {
+          clienteNombre = particularNombre.value.trim();
+          if (!clienteNombre) {
+            alert("Escribí el nombre del particular antes de guardar.");
+            return;
+          }
+        }
+
+        const fecha = fechaEntrega.value;
+        if (!fecha) {
+          alert("Elegí una fecha para la entrega.");
+          return;
+        }
+
+        let cantidadTotal = 0;
+        let totalEntrega = 0;
+        const piezasPayload = piezasAgregadas.map((item) => {
+          cantidadTotal += item.cantidad;
+          totalEntrega += item.total;
+          return {
+            producto_id: item.piezaId === "custom" ? null : parseInt(item.piezaId, 10),
+            nombre_pieza: item.nombrePieza,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio,
+            total: item.total
+          };
+        });
+
+        const payload = {
+          tipo_cliente: tipoCliente,
+          revendedor_id: revendedorId,
+          cliente_nombre: clienteNombre,
+          fecha: fecha,
+          cantidad_total: cantidadTotal,
+          total: totalEntrega,
+          piezas: piezasPayload
+        };
+
+        fetch("/api/entregas", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res.ok) {
+              window.location.reload();
+            } else {
+              alert("No se pudo guardar la entrega: " + (res.error || "Error desconocido"));
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            alert("Error de conexión al guardar la entrega.");
+          });
+      });
+
+      // Inicializar info pieza (por si hay algo preseleccionado)
+      actualizarInfoPiezaSeleccionada();
+
+      // --- links a revendedores desde el historial ---
+      document.querySelectorAll(".rev-link").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const revId = btn.dataset.revId;
+          if (revId) {
+            window.location.href = `/revendedores?selected=${revId}`;
+          }
+        });
+      });
+
+    });
+
+    // --------- DETALLE EN POPUP ---------
+    function verDetalleEntrega(id) {
+      currentDetalleEntregaId = id;
+
+      fetch(`/api/entregas/${id}`)
+        .then(r => r.json())
+        .then(res => {
+          if (!res.ok) {
+            alert("No se pudo cargar el detalle");
+            return;
+          }
+
+          const e = res.entrega;
+          document.getElementById("detalleTitulo").innerText = `Entrega #${e.id}`;
+          document.getElementById("detalleFecha").innerText = e.fecha;
+          document.getElementById("detalleCliente").innerText = e.cliente_nombre;
+          document.getElementById("detalleTipo").innerText = e.tipo_cliente;
+          document.getElementById("detalleCantidad").innerText = e.cantidad_total;
+          document.getElementById("detalleTotal").innerText = formatoMoneda(e.total);
+
+          const cont = document.getElementById("detalleItems");
+          cont.innerHTML = "";
+          res.items.forEach(it => {
+            cont.innerHTML += `
+              <div style="padding:.5rem 0; border-bottom:1px solid #2e3053">
+                <strong>${it.nombre_pieza}</strong><br>
+                Cantidad: ${it.cantidad} —
+                Precio: $${formatoMoneda(it.precio_unitario)} —
+                Total: $${formatoMoneda(it.total)}
+              </div>
+            `;
+          });
+
+          document.getElementById("modalDetalle").style.display = "flex";
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error al cargar el detalle de la entrega.");
+        });
+    }
+
+    function descargarPdfDetalle() {
+      if (!currentDetalleEntregaId) return;
+      window.open(`/entregas/${currentDetalleEntregaId}/pdf`, "_blank");
+    }
+
+    function cerrarModal() {
+      document.getElementById("modalDetalle").style.display = "none";
+    }
+
+    // --------- BORRAR ENTREGA ---------
+    async function borrarEntrega(id) {
+      if (!confirm("¿Borrar esta entrega? Se va a restaurar el stock y ajustar los saldos.")) {
+        return;
+      }
+
+      try {
+        const resp = await fetch("/api/entregas/borrar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: id })
+        });
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+          alert(data.error || "No se pudo borrar la entrega.");
+          return;
+        }
+
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert("Error de red al borrar la entrega.");
+      }
+    }
+  </script>
+
+  <!-- Modal Detalle Entrega -->
+  <div id="modalDetalle" style="
+    display:none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  ">
+    <div style="
+      background:#15172b;
+      padding: 1.8rem;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      color:#fff;
+      border: 1px solid #2e3053;
+    ">
+      <h2 id="detalleTitulo"></h2>
+      <p><strong>Fecha:</strong> <span id="detalleFecha"></span></p>
+      <p><strong>Cliente:</strong> <span id="detalleCliente"></span></p>
+      <p><strong>Tipo:</strong> <span id="detalleTipo"></span></p>
+      <p><strong>Cantidad total:</strong> <span id="detalleCantidad"></span></p>
+      <p><strong>Total:</strong> $<span id="detalleTotal"></span></p>
+
+      <hr style="margin:1rem 0; border-color:#2e3053;">
+
+      <h3>Piezas entregadas</h3>
+      <div id="detalleItems"></div>
+
+      <div style="margin-top: 1rem;">
+        <button onclick="descargarPdfDetalle()" style="
+          margin-right: .6rem;
+          padding: .6rem 1.2rem;
+          background:#151b3a;
+          border:1px solid #7b5cff;
+          border-radius:10px;
+          cursor:pointer;
+          color:#fff;
+        ">Descargar PDF</button>
+
+        <button onclick="cerrarModal()" style="
+          padding: .6rem 1.2rem;
+          background:#272a4d;
+          border:1px solid #7b5cff;
+          border-radius:10px;
+          cursor:pointer;
+          color:#fff;
+        ">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
