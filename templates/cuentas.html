@@ -467,7 +467,7 @@
       border: 1px solid var(--border-soft);
       padding: 18px 18px 16px;
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
       box-shadow: var(--shadow-soft);
     }
 
@@ -734,6 +734,51 @@
       }
     }
 
+    function inicializarBotonesPagoAyudante() {
+      const botones = document.querySelectorAll('.btn-edit-ayudante');
+      const inputId = document.getElementById('edit_ayudante_id');
+      const inputFecha = document.getElementById('edit_ayudante_fecha');
+      const inputMonto = document.getElementById('edit_ayudante_monto');
+      const inputDesc = document.getElementById('edit_ayudante_desc');
+
+      botones.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!inputId || !inputFecha || !inputMonto || !inputDesc) return;
+
+          inputId.value = btn.dataset.id || '';
+          inputFecha.value = btn.dataset.fecha || '';
+          inputMonto.value = btn.dataset.monto || '';
+          inputDesc.value = btn.dataset.desc || '';
+
+          abrirModal('modal-edit-pago-ayudante');
+        });
+      });
+    }
+
+    function inicializarBotonesEditarGasto() {
+      const botones = document.querySelectorAll('.btn-edit-gasto');
+      const idInput = document.getElementById('edit_gasto_id');
+      const fechaInput = document.getElementById('edit_gasto_fecha');
+      const descInput = document.getElementById('edit_gasto_descripcion');
+      const montoInput = document.getElementById('edit_gasto_monto');
+      const chkFil = document.getElementById('edit_gasto_filamento');
+
+      botones.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tr = btn.closest('tr');
+          if (!tr) return;
+
+          if (idInput) idInput.value = tr.dataset.gastoId || '';
+          if (fechaInput) fechaInput.value = tr.dataset.gastoFecha || '';
+          if (descInput) descInput.value = tr.dataset.gastoDesc || '';
+          if (montoInput) montoInput.value = tr.dataset.gastoMonto || '';
+          if (chkFil) chkFil.checked = (tr.dataset.gastoFilamento === '1');
+
+          abrirModal('modal-edit-gasto');
+        });
+      });
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       const inputFecha = document.getElementById('fecha');
       if (inputFecha && !inputFecha.value) {
@@ -750,6 +795,8 @@
       if (selRev) selRev.addEventListener('change', syncClienteYPrecio);
 
       syncClienteYPrecio();
+      inicializarBotonesPagoAyudante();
+      inicializarBotonesEditarGasto();
     });
   </script>
 </head>
@@ -892,21 +939,24 @@
         </div>
 
         <p class="subtitle" style="margin-bottom: 12px; font-size:0.85rem;">
-          Registrá los gastos del mes (filamento, repuestos, etc.). Se descuentan de la ganancia individual.
+          Registrá los gastos del mes (filamento, repuestos, etc.).
+          Los gastos de filamento no descuentan de la ganancia ni del ayudante.
         </p>
 
         <div class="form-row" style="margin-top:8px; margin-bottom:14px;">
-          <button
-            type="button"
-            class="btn-primary"
-            onclick="abrirModal('modal-gasto')">
+          <button type="button" class="btn-primary" onclick="abrirModal('modal-gasto')">
             <span>＋</span> Agregar gasto
+          </button>
+
+          <button type="button" class="btn-secondary" style="margin-left: 8px;"
+                  onclick="abrirModal('modal-pago-ayudante')">
+            💸 Pagos al ayudante
           </button>
         </div>
 
         {% if resumen_mes %}
           <div style="margin-top:0; font-size:0.8rem; color:var(--text-soft);">
-            Gastos del mes seleccionado: <strong>${{ '%.2f'|format(resumen_mes.gastos_mes) }}</strong><br>
+            Gastos del mes seleccionado (sin filamento): <strong>${{ '%.2f'|format(resumen_mes.gastos_mes) }}</strong><br>
             Pagado a ayudante: <strong>${{ '%.2f'|format(resumen_mes.pagado_ayudante) }}</strong>
           </div>
         {% else %}
@@ -928,10 +978,16 @@
               </thead>
               <tbody>
                 {% for g in gastos_mes_list %}
-                  <tr>
+                  <tr
+                    data-gasto-id="{{ g.id }}"
+                    data-gasto-fecha="{{ g.fecha }}"
+                    data-gasto-desc="{{ g.descripcion or '' }}"
+                    data-gasto-monto="{{ '%.2f'|format(g.monto) }}"
+                    data-gasto-filamento="{{ g.es_filamento or 0 }}"
+                  >
                     <td>{{ g.fecha }}</td>
                     <td>{{ g.descripcion or '—' }}</td>
-                    <td>${{ '%.2f'|format(g.monto) }}</td>
+                    <td class="gasto-monto">${{ '%.2f'|format(g.monto) }}</td>
                     <td style="text-align:center;">
                       {% if g.es_filamento == 1 %}
                         🧵
@@ -940,7 +996,10 @@
                       {% endif %}
                     </td>
                     <td>
-                      <button type="button" class="btn-delete" onclick="borrarGasto({{ g.id }})">🗑</button>
+                      <div class="actions-cell">
+                        <button type="button" class="btn-secondary btn-edit-gasto">Editar</button>
+                        <button type="button" class="btn-delete" onclick="borrarGasto({{ g.id }})">🗑</button>
+                      </div>
                     </td>
                   </tr>
                 {% endfor %}
@@ -964,7 +1023,7 @@
 
             <!-- Select Año -->
             <select id="anio-select" onchange="onMesAnioChange()">
-              {% set anio_actual = mes_seleccionado[0:4] %}
+              {% set anio_actual = mes_seleccionado[0:4] if mes_seleccionado else '' %}
               {% set anios = [] %}
               {% for clave in meses_disponibles %}
                 {% set anio_k = clave[0:4] %}
@@ -973,13 +1032,17 @@
                 {% endif %}
               {% endfor %}
               {% for a in anios %}
-                <option value="{{ a }}" {% if a == anio_actual %}selected{% endif %}>{{ a }}</option>
+                <option value="{{ a }}" {% if mes_seleccionado and a == anio_actual %}selected{% endif %}>{{ a }}</option>
               {% endfor %}
             </select>
 
             <!-- Select Mes SOLO si hay datos -->
             <select id="mes-select" onchange="onMesAnioChange()">
-              {% set mes_actual = mes_seleccionado[5:7] %}
+              {% if mes_seleccionado %}
+                {% set mes_actual = mes_seleccionado[5:7] %}
+              {% else %}
+                {% set mes_actual = None %}
+              {% endif %}
 
               {% set meses_por_anio = {} %}
               {% for clave in meses_disponibles %}
@@ -993,23 +1056,25 @@
                 {% endif %}
               {% endfor %}
 
-              {% for m in meses_por_anio[anio_actual] %}
-                <option value="{{ m }}" {% if m == mes_actual %}selected{% endif %}>
-                  {% if m == '01' %}ENERO
-                  {% elif m == '02' %}FEBRERO
-                  {% elif m == '03' %}MARZO
-                  {% elif m == '04' %}ABRIL
-                  {% elif m == '05' %}MAYO
-                  {% elif m == '06' %}JUNIO
-                  {% elif m == '07' %}JULIO
-                  {% elif m == '08' %}AGOSTO
-                  {% elif m == '09' %}SEPTIEMBRE
-                  {% elif m == '10' %}OCTUBRE
-                  {% elif m == '11' %}NOVIEMBRE
-                  {% elif m == '12' %}DICIEMBRE
-                  {% endif %}
-                </option>
-              {% endfor %}
+              {% if mes_seleccionado %}
+                {% for m in meses_por_anio[anio_actual] %}
+                  <option value="{{ m }}" {% if m == mes_actual %}selected{% endif %}>
+                    {% if m == '01' %}ENERO
+                    {% elif m == '02' %}FEBRERO
+                    {% elif m == '03' %}MARZO
+                    {% elif m == '04' %}ABRIL
+                    {% elif m == '05' %}MAYO
+                    {% elif m == '06' %}JUNIO
+                    {% elif m == '07' %}JULIO
+                    {% elif m == '08' %}AGOSTO
+                    {% elif m == '09' %}SEPTIEMBRE
+                    {% elif m == '10' %}OCTUBRE
+                    {% elif m == '11' %}NOVIEMBRE
+                    {% elif m == '12' %}DICIEMBRE
+                    {% endif %}
+                  </option>
+                {% endfor %}
+              {% endif %}
             </select>
           </div>
 
@@ -1024,8 +1089,6 @@
             window.location.href = url.toString();
           }
           </script>
-
-
           {% endif %}
           <div class="badge">
             <span class="badge-dot"></span>
@@ -1042,12 +1105,10 @@
             <div class="kpi-main-value">
               ${{ '%.2f'|format(resumen_mes.gi_neta) }}
             </div>
-            <div style="font-size:0.78rem; color:var(--text-soft); margin-top:2px;">
-            </div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-main-label">Gastos del mes</div>
+            <div class="kpi-main-label">Gastos del mes (sin filamento)</div>
             <div class="kpi-main-value">
               ${{ '%.2f'|format(resumen_mes.gastos_mes) }}
             </div>
@@ -1063,9 +1124,7 @@
           <div class="kpi-card">
             <div class="kpi-main-label">Para filamento</div>
             <div class="kpi-main-value">
-              ${{ '%.2f'|format(fondo_filamento or 0) }}
-            </div>
-            <div style="font-size:0.78rem; color:var(--text-soft); margin-top:2px;">
+              ${{ '%.2f'|format(para_filamento_mes or 0) }}
             </div>
           </div>
         </div>
@@ -1246,7 +1305,7 @@
               Marcar como gasto de filamento
             </label>
             <div class="hint">
-              Además de restar en los gastos del mes, descuenta del fondo "Para filamento".
+              Se muestra en la lista y afecta el fondo, pero no descuenta de la ganancia ni del ayudante.
             </div>
           </div>
 
@@ -1266,7 +1325,248 @@
     </div>
   </div>
 
-  <!-- MODAL: EDITAR PAGO SIMPLE -->
+  <!-- MODAL: EDITAR GASTO -->
+  <div class="modal-backdrop" id="modal-edit-gasto">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Editar gasto</div>
+        <button class="modal-close" type="button" onclick="cerrarModal('modal-edit-gasto')">×</button>
+      </div>
+      <div class="modal-body">
+        <form method="POST">
+          <input type="hidden" name="form_type" value="gasto_edit">
+          <input type="hidden" name="gasto_id" id="edit_gasto_id">
+
+          <div class="field" style="margin-bottom:10px;">
+            <label for="edit_gasto_fecha">Fecha</label>
+            <input type="date" id="edit_gasto_fecha" name="fecha_gasto">
+          </div>
+
+          <div class="field" style="margin-bottom:10px;">
+            <label for="edit_gasto_descripcion">Detalle</label>
+            <input
+              type="text"
+              id="edit_gasto_descripcion"
+              name="descripcion_gasto"
+              placeholder="Detalle del gasto">
+          </div>
+
+          <div class="field" style="margin-bottom:10px;">
+            <label for="edit_gasto_monto">Monto</label>
+            <input
+              type="number"
+              step="0.01"
+              id="edit_gasto_monto"
+              name="monto_gasto">
+          </div>
+
+          <div class="field" style="margin:8px 0 4px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input
+                type="checkbox"
+                name="es_filamento"
+                id="edit_gasto_filamento"
+                value="1"
+                style="width:16px; height:16px; border-radius:6px;">
+              Marcar como gasto de filamento
+            </label>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="cerrarModal('modal-edit-gasto')">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PAGO AYUDANTE (lista + alta) -->
+  <div id="modal-pago-ayudante" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Pagos al ayudante</div>
+        <button type="button" class="modal-close" onclick="cerrarModal('modal-pago-ayudante')">×</button>
+      </div>
+
+      <div class="modal-body">
+        {% if resumen_mes %}
+          <p class="hint" style="margin-bottom:10px;">
+            Pendiente actual a pagar: <strong>${{ '%.2f'|format(resumen_mes.ayudante) }}</strong>
+          </p>
+        {% endif %}
+
+        <!-- Form para nuevo pago al ayudante -->
+        <form method="POST">
+          <input type="hidden" name="form_type" value="gasto">
+          <input type="hidden" name="tipo_gasto" value="pago_ayudante">
+
+          <div class="form-row">
+            <div class="field">
+              <label for="fecha_pago_ayudante">Fecha</label>
+              <input
+                type="date"
+                id="fecha_pago_ayudante"
+                name="fecha_gasto"
+                value="{{ hoy }}"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="monto_pago_ayudante">Monto pagado</label>
+              <input
+                type="number"
+                id="monto_pago_ayudante"
+                name="monto_gasto"
+                min="0"
+                step="100"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field" style="flex:1;">
+              <label for="desc_pago_ayudante">Descripción (opcional)</label>
+              <input
+                type="text"
+                id="desc_pago_ayudante"
+                name="descripcion_gasto"
+                placeholder="Ej: Pago en mano, transferencia, etc."
+              />
+            </div>
+          </div>
+
+          <p class="hint">
+            Este registro solo descuenta del resumen de <strong>Ayudante (pendiente)</strong>.
+            No se suma a los gastos del mes.
+          </p>
+
+          <div class="modal-footer" style="padding-top:8px;">
+            <button type="button" class="btn-secondary" onclick="cerrarModal('modal-pago-ayudante')">
+              Cerrar
+            </button>
+            <button type="submit" class="btn-primary">
+              Guardar pago
+            </button>
+          </div>
+        </form>
+
+        <!-- Historial de pagos al ayudante -->
+        <div style="margin-top:14px;">
+          <h3 style="font-size:0.9rem; margin-bottom:6px;">Historial de pagos</h3>
+          {% if pagos_ayudante_list and pagos_ayudante_list|length > 0 %}
+            <table class="table-small">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Detalle</th>
+                  <th>Monto</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in pagos_ayudante_list %}
+                  <tr>
+                    <td>{{ p.fecha }}</td>
+                    <td>{{ p.descripcion or '—' }}</td>
+                    <td>${{ '%.2f'|format(p.monto) }}</td>
+                    <td>
+                      <div class="actions-cell">
+                        <button
+                          type="button"
+                          class="btn-secondary btn-edit-ayudante"
+                          data-id="{{ p.id }}"
+                          data-fecha="{{ p.fecha }}"
+                          data-monto="{{ '%.2f'|format(p.monto) }}"
+                          data-desc="{{ p.descripcion or '' }}">
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-delete"
+                          onclick="borrarGasto({{ p.id }})">
+                          🗑
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="empty">Todavía no registraste pagos al ayudante en este mes.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR PAGO AYUDANTE -->
+  <div class="modal-backdrop" id="modal-edit-pago-ayudante">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Editar pago al ayudante</div>
+        <button type="button" class="modal-close" onclick="cerrarModal('modal-edit-pago-ayudante')">×</button>
+      </div>
+      <div class="modal-body">
+        <form method="POST">
+          <input type="hidden" name="form_type" value="pago_ayudante_edit">
+          <input type="hidden" name="gasto_id" id="edit_ayudante_id">
+
+          <div class="form-row">
+            <div class="field">
+              <label for="edit_ayudante_fecha">Fecha</label>
+              <input
+                type="date"
+                id="edit_ayudante_fecha"
+                name="fecha_gasto"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="edit_ayudante_monto">Monto</label>
+              <input
+                type="number"
+                id="edit_ayudante_monto"
+                name="monto_gasto"
+                min="0"
+                step="100"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:6px;">
+            <label for="edit_ayudante_desc">Descripción</label>
+            <input
+              type="text"
+              id="edit_ayudante_desc"
+              name="descripcion_gasto"
+              placeholder="Ej: pago en mano">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="cerrarModal('modal-edit-pago-ayudante')">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR PAGO (ventas) -->
   <div class="modal-backdrop" id="modal-edit-pago">
     <div class="modal">
       <div class="modal-header">

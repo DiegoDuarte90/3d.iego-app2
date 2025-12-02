@@ -68,7 +68,7 @@ def obtener_revendedores():
 
 
 # ---------------------------
-# UTILIDAD: PDF DE ENTREGA (nuevo)
+# UTILIDAD: PDF DE ENTREGA
 # ---------------------------
 
 def _formatear_fecha_ddmmyyyy(fecha_raw: str) -> str:
@@ -85,8 +85,6 @@ def _formatear_fecha_ddmmyyyy(fecha_raw: str) -> str:
         return fecha_raw
 
 
-
-
 # ---------------------------
 # RUTAS FRONTEND
 # ---------------------------
@@ -97,7 +95,7 @@ def dashboard():
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # -------- rango del mes actual --------
+    # -------- rango mes actual --------
     hoy = datetime.now().date()
     inicio_mes = hoy.replace(day=1)
     if inicio_mes.month == 12:
@@ -105,66 +103,76 @@ def dashboard():
     else:
         fin_mes = inicio_mes.replace(month=inicio_mes.month + 1)
 
-    inicio_str = inicio_mes.isoformat()
-    fin_str = fin_mes.isoformat()
     mes_clave_actual = inicio_mes.strftime("%Y-%m")
 
-    # -------- 1) Ganancia del mes (pagos.ganancia_individual) --------
+    # -------- PAGOS DEL MES --------
+    cur.execute("""
+        SELECT monto, costo
+        FROM pagos
+        WHERE mes_clave = ?
+    """, (mes_clave_actual,))
+    pagos = cur.fetchall()
+
+    total_montos = sum(p["monto"] for p in pagos) if pagos else 0.0
+    total_costos = sum(p["costo"] for p in pagos) if pagos else 0.0
+
+    # -------- GASTOS DEL MES (sin filamento) --------
     try:
         cur.execute("""
-            SELECT COALESCE(SUM(ganancia_individual), 0) AS gi_mes
-            FROM pagos
+            SELECT COALESCE(SUM(monto), 0) AS total_gastos
+            FROM gastos
             WHERE mes_clave = ?
+              AND tipo = 'gasto'
+              AND IFNULL(es_filamento, 0) = 0
         """, (mes_clave_actual,))
-        row = cur.fetchone()
-        ganancia_mes = float(row["gi_mes"] or 0) if row else 0.0
+        row_g = cur.fetchone()
+        total_gastos = float(row_g["total_gastos"]) if row_g else 0.0
     except sqlite3.OperationalError:
-        # Si todavía no existe la tabla pagos
-        ganancia_mes = 0.0
+        # si todavía no existe la tabla/columna, tomamos 0
+        total_gastos = 0.0
 
-    # -------- 2) Pieza más vendida del mes (por cantidad) --------
-    try:
-        cur.execute("""
-            SELECT ei.nombre_pieza AS pieza, SUM(ei.cantidad) AS total_cant
-            FROM entrega_items ei
-            JOIN entregas e ON ei.entrega_id = e.id
-            WHERE e.fecha >= ? AND e.fecha < ?
-            GROUP BY ei.nombre_pieza
-            ORDER BY total_cant DESC
-            LIMIT 1
-        """, (inicio_str, fin_str))
-        row = cur.fetchone()
-        pieza_mas_vendida = row["pieza"] if row else None
-    except sqlite3.OperationalError:
-        # Si todavía no existen tablas de entregas/items
-        pieza_mas_vendida = None
+    # 1) GANANCIA DEL MES (BRUTA REAL)
+    ganancia_mes = total_montos - total_costos - total_gastos
 
-    # -------- 3) Revendedor top del mes (el que más compró en $) --------
-    try:
-        cur.execute("""
-            SELECT r.nombre AS revendedor, SUM(e.total) AS total_ventas
-            FROM entregas e
-            JOIN revendedores r ON e.revendedor_id = r.id
-            WHERE e.tipo_cliente = 'revendedor'
-              AND e.fecha >= ? AND e.fecha < ?
-            GROUP BY r.id, r.nombre
-            ORDER BY total_ventas DESC
-            LIMIT 1
-        """, (inicio_str, fin_str))
-        row = cur.fetchone()
-        revendedor_top = row["revendedor"] if row else None
-    except sqlite3.OperationalError:
-        revendedor_top = None
+    # 2) GANANCIA INDIVIDUAL (MITAD)
+    ganancia_individual_mes = ganancia_mes / 2.0
+
+    # -------- Pieza más vendida --------
+    cur.execute("""
+        SELECT ei.nombre_pieza AS pieza, SUM(ei.cantidad) AS total_cant
+        FROM entrega_items ei
+        JOIN entregas e ON ei.entrega_id = e.id
+        WHERE e.fecha >= ? AND e.fecha < ?
+        GROUP BY ei.nombre_pieza
+        ORDER BY total_cant DESC
+        LIMIT 1
+    """, (inicio_mes.isoformat(), fin_mes.isoformat()))
+    row = cur.fetchone()
+    pieza_mas_vendida = row["pieza"] if row else None
+
+    # -------- Revendedor top --------
+    cur.execute("""
+        SELECT r.nombre AS revendedor, SUM(e.total) AS total_ventas
+        FROM entregas e
+        JOIN revendedores r ON e.revendedor_id = r.id
+        WHERE e.tipo_cliente = 'revendedor'
+          AND e.fecha >= ? AND e.fecha < ?
+        GROUP BY r.id
+        ORDER BY total_ventas DESC
+        LIMIT 1
+    """, (inicio_mes.isoformat(), fin_mes.isoformat()))
+    row = cur.fetchone()
+    revendedor_top = row["revendedor"] if row else None
 
     conn.close()
 
     return render_template(
         "dashboard.html",
         ganancia_mes=ganancia_mes,
+        ganancia_individual_mes=ganancia_individual_mes,
         pieza_mas_vendida=pieza_mas_vendida,
         revendedor_top=revendedor_top,
     )
-
 
 
 @app.route("/stock")
@@ -176,6 +184,7 @@ def pagina_stock():
 def pagina_revendedores():
     return render_template("revendedores.html")
 
+
 @app.route("/api/revendedores/borrar", methods=["POST"])
 def api_borrar_revendedor_completo():
     data = request.get_json(force=True) or {}
@@ -186,7 +195,7 @@ def api_borrar_revendedor_completo():
 
     try:
         rev_id = int(rev_id)
-    except:
+    except Exception:
         return jsonify(ok=False, error="ID inválido"), 200
 
     conn = get_conn()
@@ -205,7 +214,7 @@ def api_borrar_revendedor_completo():
         conn.close()
         return jsonify(ok=False, error="No se puede borrar: tiene entregas o pagos asociados."), 200
 
-    # Borrado lógico (igual que hacés en otros lados)
+    # Borrado lógico
     cur.execute("""
         UPDATE revendedores
         SET activo = 0, updated_at = datetime('now')
@@ -296,22 +305,18 @@ def cuentas():
             tipo TEXT NOT NULL,                      -- 'gasto' / 'pago_ayudante'
             descripcion TEXT,
             monto REAL NOT NULL,
-            mes_clave TEXT NOT NULL                  -- 'YYYY-MM'
-            -- es_filamento se agrega por ALTER más abajo
+            mes_clave TEXT NOT NULL
         );
     """)
 
-    # columna extra para saber si el gasto es de filamento
+    # columna extra para filamento
     try:
         cur.execute("ALTER TABLE gastos ADD COLUMN es_filamento INTEGER DEFAULT 0")
         conn.commit()
     except sqlite3.OperationalError:
-        # ya existe, no pasa nada
         pass
 
-    # -------------------------------------------------
-    # POST: puede venir un pago nuevo o un gasto nuevo
-    # -------------------------------------------------
+    # ------------------ POST ------------------
     if request.method == "POST":
         form_type = request.form.get("form_type", "pago")
 
@@ -322,7 +327,6 @@ def cuentas():
             nombre_particular = (request.form.get("nombre_particular") or "").strip() or None
             descripcion = (request.form.get("descripcion") or "").strip()
 
-            # tipo_cliente se infiere: si hay revendedor_id es revendedor, sino particular
             if revendedor_id:
                 tipo_cliente = "revendedor"
             else:
@@ -332,18 +336,15 @@ def cuentas():
 
             monto_total = float(request.form.get("monto") or 0)
             division_default = int(request.form.get("division") or 1)
-            dividir = request.form.get("dividir")  # 'on' si está tildado
-
-            mes_clave = fecha_str[:7]  # 'YYYY-MM'
+            dividir = request.form.get("dividir")
+            mes_clave = fecha_str[:7]
 
             def preparar_registro(monto_unit, division_unit, categoria_unit):
                 if not monto_unit or monto_unit <= 0:
                     return None
-
                 costo = monto_unit / division_unit
                 ganancia = monto_unit - costo
-                ganancia_individual = ganancia / 2
-
+                ganancia_individual = ganancia / 2.0
                 return (
                     fecha_str,
                     tipo_cliente,
@@ -390,18 +391,15 @@ def cuentas():
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, r)
-
             conn.commit()
 
-        # ------------- NUEVO GASTO -------------
+        # ------------- NUEVO GASTO O PAGO AYUDANTE -------------
         elif form_type == "gasto":
             fecha_g = request.form.get("fecha_gasto") or datetime.now().strftime("%Y-%m-%d")
             descripcion_g = (request.form.get("descripcion_gasto") or "").strip()
             monto_g = float(request.form.get("monto_gasto") or 0)
             tipo_g = request.form.get("tipo_gasto") or "gasto"   # 'gasto' / 'pago_ayudante'
             mes_clave_g = fecha_g[:7]
-
-            # checkbox "es filamento"
             es_filamento = 1 if request.form.get("es_filamento") in ("1", "on") else 0
 
             if monto_g > 0:
@@ -411,9 +409,40 @@ def cuentas():
                 """, (fecha_g, tipo_g, descripcion_g, monto_g, mes_clave_g, es_filamento))
                 conn.commit()
 
-    # -------------------------------------------------
-    # Selector de meses (usa pagos y gastos para que estén todos)
-    # -------------------------------------------------
+        # ------------- EDITAR GASTO NORMAL -------------
+        elif form_type == "gasto_edit":
+            gasto_id = request.form.get("gasto_id")
+            fecha_g = request.form.get("fecha_gasto") or datetime.now().strftime("%Y-%m-%d")
+            descripcion_g = (request.form.get("descripcion_gasto") or "").strip()
+            monto_g = float(request.form.get("monto_gasto") or 0)
+            es_filamento = 1 if request.form.get("es_filamento") in ("1", "on") else 0
+            mes_clave_g = fecha_g[:7]
+
+            if gasto_id and monto_g > 0:
+                cur.execute("""
+                    UPDATE gastos
+                    SET fecha = ?, descripcion = ?, monto = ?, mes_clave = ?, es_filamento = ?
+                    WHERE id = ? AND tipo = 'gasto'
+                """, (fecha_g, descripcion_g, monto_g, mes_clave_g, es_filamento, gasto_id))
+                conn.commit()
+
+        # ------------- EDITAR PAGO AYUDANTE -------------
+        elif form_type == "pago_ayudante_edit":
+            gasto_id = request.form.get("gasto_id")
+            fecha_g = request.form.get("fecha_gasto") or datetime.now().strftime("%Y-%m-%d")
+            descripcion_g = (request.form.get("descripcion_gasto") or "").strip()
+            monto_g = float(request.form.get("monto_gasto") or 0)
+            mes_clave_g = fecha_g[:7]
+
+            if gasto_id and monto_g > 0:
+                cur.execute("""
+                    UPDATE gastos
+                    SET fecha = ?, descripcion = ?, monto = ?, mes_clave = ?
+                    WHERE id = ? AND tipo = 'pago_ayudante'
+                """, (fecha_g, descripcion_g, monto_g, mes_clave_g, gasto_id))
+                conn.commit()
+
+    # ------------------ SELECTOR DE MESES ------------------
     cur.execute("""
         SELECT mes_clave FROM pagos
         UNION
@@ -431,9 +460,7 @@ def cuentas():
 
     meses = OrderedDict()
 
-    # -------------------------------------------------
-    # Pagos del mes seleccionado (agrupados por pago lógico)
-    # -------------------------------------------------
+    # ------------------ PAGOS DEL MES ------------------
     if mes_seleccionado:
         cur.execute("""
             SELECT
@@ -456,7 +483,6 @@ def cuentas():
 
         for row in rows:
             row = dict(row)
-
             clave = (
                 row["fecha"],
                 row["tipo_cliente"],
@@ -514,20 +540,26 @@ def cuentas():
             "totales": totales,
         }
 
-    # -------------------------------------------------
-    # Gastos del mes y resumen (ayudante / ganancia indiv)
-    # -------------------------------------------------
+    # ------------------ GASTOS + RESUMEN ------------------
     resumen_mes = None
     gastos_mes_list = []
+    pagos_ayudante_list = []
 
     if mes_seleccionado:
+        # Totales de gastos (sin filamento) y pagos ayudante
         cur.execute("""
             SELECT
-              -- Solo cuentan como gasto del mes los que NO son de filamento
-              COALESCE(SUM(CASE WHEN tipo = 'gasto' AND es_filamento = 0 THEN monto ELSE 0 END), 0) AS total_gastos,
-              
-              -- Pagos al ayudante (si los usás)
-              COALESCE(SUM(CASE WHEN tipo = 'pago_ayudante' THEN monto ELSE 0 END), 0) AS total_pagos_ayudante
+              COALESCE(SUM(CASE
+                             WHEN tipo = 'gasto'
+                              AND IFNULL(es_filamento, 0) = 0
+                             THEN monto
+                             ELSE 0
+                           END), 0) AS total_gastos,
+              COALESCE(SUM(CASE
+                             WHEN tipo = 'pago_ayudante'
+                             THEN monto
+                             ELSE 0
+                           END), 0) AS total_pagos_ayudante
             FROM gastos
             WHERE mes_clave = ?
         """, (mes_seleccionado,))
@@ -540,8 +572,10 @@ def cuentas():
         else:
             gi_bruta = 0.0
 
+        # gi_bruta ya es (∑montos - ∑costos)/2
+        # gi_neta = gi_bruta - (gastos_sin_filamento / 2)
         gi_neta = gi_bruta - total_gastos / 2.0
-        ayudante_pendiente = gi_bruta - total_gastos / 2.0 - total_pagos_ayudante
+        ayudante_pendiente = gi_neta - total_pagos_ayudante
 
         resumen_mes = {
             "gastos_mes": total_gastos,
@@ -551,44 +585,34 @@ def cuentas():
             "ayudante": ayudante_pendiente,
         }
 
+        # SOLO gastos "normales" (los listamos todos, incluyendo filamento, para verlos)
         cur.execute("""
             SELECT id, fecha, descripcion, tipo, monto, es_filamento
             FROM gastos
-            WHERE mes_clave = ?
+            WHERE mes_clave = ? AND tipo = 'gasto'
             ORDER BY fecha DESC, id DESC
         """, (mes_seleccionado,))
         gastos_mes_list = [dict(r) for r in cur.fetchall()]
+
+        # Lista de pagos al ayudante (para el popup)
+        cur.execute("""
+            SELECT id, fecha, descripcion, monto
+            FROM gastos
+            WHERE mes_clave = ? AND tipo = 'pago_ayudante'
+            ORDER BY fecha DESC, id DESC
+        """, (mes_seleccionado,))
+        pagos_ayudante_list = [dict(r) for r in cur.fetchall()]
 
     # Combo de revendedores
     cur.execute("SELECT id, nombre FROM revendedores WHERE activo = 1 ORDER BY nombre;")
     revendedores = cur.fetchall()
 
-    # -------------------------------------------------
-    # Fondo global "para filamento" (todas las fechas)
-    # -------------------------------------------------
-    fondo_filamento = 0.0
-    try:
-        cur.execute("""
-            SELECT COALESCE(SUM(costo), 0) AS suma_costos
-            FROM pagos
-        """)
-        row_fc = cur.fetchone()
-        suma_costos = float(row_fc["suma_costos"] or 0) if row_fc else 0.0
-
-        cur.execute("""
-            SELECT COALESCE(SUM(monto), 0) AS suma_filamento
-            FROM gastos
-            WHERE es_filamento = 1
-        """)
-        row_gf = cur.fetchone()
-        suma_filamento = float(row_gf["suma_filamento"] or 0) if row_gf else 0.0
-
-        fondo_filamento = suma_costos - suma_filamento
-    except Exception:
-        fondo_filamento = 0.0
+    # PARA FILAMENTO = suma de costos del mes (según tu definición)
+    para_filamento_mes = 0.0
+    if mes_seleccionado and mes_seleccionado in meses:
+        para_filamento_mes = float(meses[mes_seleccionado]["totales"]["costo"] or 0)
 
     conn.close()
-
     hoy = datetime.now().strftime("%Y-%m-%d")
 
     return render_template(
@@ -599,10 +623,10 @@ def cuentas():
         mes_seleccionado=mes_seleccionado,
         resumen_mes=resumen_mes,
         gastos_mes_list=gastos_mes_list,
+        pagos_ayudante_list=pagos_ayudante_list,
         hoy=hoy,
-        fondo_filamento=fondo_filamento,
+        para_filamento_mes=para_filamento_mes,
     )
-
 
 
 # ---------------------------
@@ -856,70 +880,115 @@ def api_borrar_producto(producto_id):
 # API REVENDEDORES
 # ---------------------------
 
-@app.route("/api/revendedores", methods=["GET"])
+@app.route("/api/revendedores", methods=["GET", "POST"])
 def api_revendedores():
     """
-    Devuelve los revendedores activos, incluyendo saldo_actual.
-
-    saldo_actual = saldo_inicial
-                   + SUM(entregas.total)         (tipo_cliente = 'revendedor')
-                   - SUM(pagos.monto)            (tipo_cliente = 'revendedor')
+    GET  -> lista de revendedores con saldo_actual calculado
+    POST -> crea un nuevo revendedor
     """
     conn = get_conn()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # Traemos todos los revendedores activos
-    cur.execute("""
-        SELECT
-            id,
-            nombre,
-            contacto,
-            notas,
-            saldo_inicial,
-            created_at,
-            updated_at
-        FROM revendedores
-        WHERE activo = 1
-        ORDER BY nombre;
-    """)
-    filas = cur.fetchall()
-
-    resultado = []
-
-    for r in filas:
-        rev_id = r["id"]
-        saldo_base = float(r["saldo_inicial"] or 0)
-
-        # Suma de entregas a este revendedor
+    # ------------------- GET: LISTAR -------------------
+    if request.method == "GET":
+        # Traemos todos los revendedores activos
         cur.execute("""
-            SELECT COALESCE(SUM(total), 0) AS suma_entregas
-            FROM entregas
-            WHERE tipo_cliente = 'revendedor'
-              AND revendedor_id = ?
-        """, (rev_id,))
-        row_ent = cur.fetchone()
-        suma_entregas = float(row_ent["suma_entregas"] or 0) if row_ent else 0.0
+            SELECT
+                id,
+                nombre,
+                contacto,
+                notas,
+                saldo_inicial,
+                created_at,
+                updated_at
+            FROM revendedores
+            WHERE activo = 1
+            ORDER BY nombre;
+        """)
+        filas = cur.fetchall()
 
-        # Suma de pagos de este revendedor
+        resultado = []
+
+        for r in filas:
+            rev_id = r["id"]
+            saldo_base = float(r["saldo_inicial"] or 0)
+
+            # Suma de entregas a este revendedor
+            cur.execute("""
+                SELECT COALESCE(SUM(total), 0) AS suma_entregas
+                FROM entregas
+                WHERE tipo_cliente = 'revendedor'
+                  AND revendedor_id = ?
+            """, (rev_id,))
+            row_ent = cur.fetchone()
+            suma_entregas = float(row_ent["suma_entregas"] or 0) if row_ent else 0.0
+
+            # Suma de pagos de este revendedor
+            cur.execute("""
+                SELECT COALESCE(SUM(monto), 0) AS suma_pagos
+                FROM pagos
+                WHERE tipo_cliente = 'revendedor'
+                  AND revendedor_id = ?
+            """, (rev_id,))
+            row_pag = cur.fetchone()
+            suma_pagos = float(row_pag["suma_pagos"] or 0) if row_pag else 0.0
+
+            # saldo real (positivo = nos debe, negativo = a favor)
+            saldo_actual = saldo_base + suma_entregas - suma_pagos
+
+            d = dict(r)
+            d["saldo_actual"] = saldo_actual
+            resultado.append(d)
+
+        conn.close()
+        return jsonify(resultado)
+
+    # ------------------- POST: CREAR -------------------
+    # si llegamos acá es porque method == "POST"
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        conn.close()
+        return jsonify({"ok": False, "error": "JSON inválido"}), 200
+
+    nombre = (data.get("nombre") or "").strip()
+    if not nombre:
+        conn.close()
+        return jsonify({"ok": False, "error": "El nombre es obligatorio"}), 200
+
+    contacto = (data.get("contacto") or "").strip()
+    notas = (data.get("notas") or "").strip()
+
+    try:
+        saldo_inicial = float(data.get("saldo_inicial") or 0)
+    except Exception:
+        conn.close()
+        return jsonify({"ok": False, "error": "Saldo inicial inválido"}), 200
+
+    try:
         cur.execute("""
-            SELECT COALESCE(SUM(monto), 0) AS suma_pagos
-            FROM pagos
-            WHERE tipo_cliente = 'revendedor'
-              AND revendedor_id = ?
-        """, (rev_id,))
-        row_pag = cur.fetchone()
-        suma_pagos = float(row_pag["suma_pagos"] or 0) if row_pag else 0.0
-
-        # saldo real (positivo = nos debe, negativo = a favor)
-        saldo_actual = saldo_base + suma_entregas - suma_pagos
-
-        d = dict(r)
-        d["saldo_actual"] = saldo_actual
-        resultado.append(d)
+            INSERT INTO revendedores (
+                nombre,
+                contacto,
+                notas,
+                saldo_inicial,
+                activo,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, 1, datetime('now'), datetime('now'))
+        """, (nombre, contacto, notas, saldo_inicial))
+        conn.commit()
+        nuevo_id = cur.lastrowid
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"ok": False, "error": f"Error SQLite: {e}"}), 200
 
     conn.close()
-    return jsonify(resultado)
+    return jsonify({"ok": True, "id": nuevo_id}), 200
+
 
 
 @app.route("/api/revendedores/<int:rev_id>", methods=["PUT"])
@@ -1116,7 +1185,6 @@ def descargar_pdf_entrega(entrega_id):
     raw_items = cur.fetchall()
     conn.close()
 
-    # Adaptar datos a lo que pdfgen.py espera
     items = []
     for it in raw_items:
         items.append({
@@ -1126,23 +1194,16 @@ def descargar_pdf_entrega(entrega_id):
             "total": it["total"],
         })
 
-    # 🔹 Limpiar nombre del cliente: sacar número inicial + guion
+    # Limpiar nombre del cliente
     raw_cliente = entrega["cliente_nombre"] or ""
-    # Quitar número inicial + guiones + puntos
     cliente_limpio = re.sub(r'^\s*\d+\s*[-–.)_]*\s*', '', raw_cliente).strip()
-
-    # Quitar puntos sueltos al inicio
     cliente_limpio = re.sub(r'^\.+', '', cliente_limpio).strip()
-
-    # Quitar cualquier carácter raro al inicio
     cliente_limpio = re.sub(r'^[^\wÁÉÍÓÚáéíóúñÑ]+', '', cliente_limpio).strip()
-
 
     # Carpeta de salida
     output_dir = Path("pdfs")
     output_file = output_dir / f"entrega_{entrega_id}.pdf"
 
-    # Ejecutar tu generador usando el nombre limpio
     pdf_bytes, pdf_path_str = build_entrega_pdf(
         cliente=cliente_limpio,
         fecha_iso=entrega["fecha"],
@@ -1150,14 +1211,12 @@ def descargar_pdf_entrega(entrega_id):
         out_path=output_file
     )
 
-    # Devolver PDF como descarga con nombre sin número
     return send_file(
         io.BytesIO(pdf_bytes),
         mimetype="application/pdf",
         as_attachment=True,
         download_name=f"ENTREGA_{cliente_limpio}.pdf"
     )
-
 
 
 # ---------------------------
@@ -1263,6 +1322,7 @@ def api_pago_detalle_o_editar(pago_id):
 
     return jsonify({"ok": True})
 
+
 @app.route("/api/entregas/borrar", methods=["POST"])
 def api_borrar_entrega():
     """
@@ -1270,9 +1330,6 @@ def api_borrar_entrega():
       - Restaura el stock de los productos involucrados
       - Elimina los items de la entrega
       - Elimina la cabecera de la entrega
-
-    Al borrarla, el saldo del revendedor se ajusta solo porque siempre
-    se calcula con SUM(entregas.total) en tiempo real.
     """
     try:
         data = request.get_json(force=True) or {}
@@ -1386,7 +1443,6 @@ def api_borrar_pagos():
         if not isinstance(ids, list):
             return jsonify({"ok": False, "error": "Formato de IDs inválido (no es lista)."}), 200
 
-        # limpiar y convertir a int
         ids = [int(x) for x in ids if str(x).isdigit()]
 
         if not ids:
@@ -1410,7 +1466,6 @@ def api_borrar_pagos():
         return jsonify({"ok": True, "borrados": borrados}), 200
 
     except Exception as e:
-        # devolvemos el error en JSON para que lo veas en el alert
         return jsonify({"ok": False, "error": f"Error SQLite: {e}"}), 200
 
 

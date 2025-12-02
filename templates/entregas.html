@@ -733,9 +733,7 @@
             <select id="revendedorSelect">
               <option value="">— Seleccionar revendedor —</option>
               {% for r in revendedores %}
-                <option value="{{ r.id }}">
-                  {{ r.id }} · {{ r.nombre }}
-                </option>
+                <option value="{{ r.id }}">{{ r.nombre }}</option>
               {% endfor %}
             </select>
             <p class="helper-text">
@@ -743,6 +741,7 @@
             </p>
           </div>
         </div>
+
 
         <div class="form-row-single hidden" id="particularWrapper">
           <div>
