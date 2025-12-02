@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>3D.IEGO · Cuentas</title>
@@ -413,7 +413,6 @@
       flex-wrap: wrap;
     }
 
-    /* KPIs resumen (4 cards iguales) */
     .kpi-row {
       display: flex;
       gap: 18px;
@@ -446,7 +445,6 @@
       font-weight: 700;
     }
 
-    /* MODALS */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -511,7 +509,6 @@
       font-size: 0.75rem;
     }
 
-    /* LISTA DE GASTOS DENTRO DE LA CARD */
     .gastos-list-wrapper {
       margin-top: 10px;
       padding: 8px 10px;
@@ -627,6 +624,32 @@
         location.reload();
       } catch (err) {
         alert('Error de red al borrar el gasto.');
+      }
+    }
+
+    // NUEVO: borrar pago al ayudante (separado de gastos normales)
+    async function borrarPagoAyudante(id) {
+      if (!confirm('¿Borrar este pago al ayudante? Esto ajustará el pendiente.')) {
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/pagos-ayudante/borrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id })
+        });
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+          alert(data.error || 'No se pudo borrar el pago al ayudante.');
+          return;
+        }
+
+        location.reload();
+      } catch (err) {
+        alert('Error de red al borrar el pago al ayudante.');
       }
     }
 
@@ -963,7 +986,6 @@
           <p class="empty" style="margin-top:4px;">No hay datos de gastos para este mes.</p>
         {% endif %}
 
-        <!-- LISTA DE GASTOS DEL MES DENTRO DE LA CARD -->
         <div class="gastos-list-wrapper">
           {% if gastos_mes_list and gastos_mes_list|length > 0 %}
             <table class="table-small">
@@ -1021,7 +1043,6 @@
           <div class="month-selector">
             <span>Mes:</span>
 
-            <!-- Select Año -->
             <select id="anio-select" onchange="onMesAnioChange()">
               {% set anio_actual = mes_seleccionado[0:4] if mes_seleccionado else '' %}
               {% set anios = [] %}
@@ -1036,7 +1057,6 @@
               {% endfor %}
             </select>
 
-            <!-- Select Mes SOLO si hay datos -->
             <select id="mes-select" onchange="onMesAnioChange()">
               {% if mes_seleccionado %}
                 {% set mes_actual = mes_seleccionado[5:7] %}
@@ -1097,7 +1117,6 @@
         </div>
       </div>
 
-      <!-- KPIs del mes -->
       {% if resumen_mes %}
         <div class="kpi-row">
           <div class="kpi-card">
@@ -1132,7 +1151,6 @@
         <p class="empty">No hay información de resumen para este mes.</p>
       {% endif %}
 
-      <!-- Tabla de pagos del mes -->
       <div class="months">
         {% if not meses %}
           <p class="empty">Todavía no hay pagos registrados.</p>
@@ -1492,7 +1510,7 @@
                         <button
                           type="button"
                           class="btn-delete"
-                          onclick="borrarGasto({{ p.id }})">
+                          onclick="borrarPagoAyudante({{ p.id }})">
                           🗑
                         </button>
                       </div>
