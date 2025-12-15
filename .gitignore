@@ -1,4 +1,21 @@
+
+
+
+
+
+
+# Python
+.venv/
 __pycache__/
 *.pyc
-*.db
 3d_iego.db
+
+# App runtime
+pdfs/
+*.db
+*.sqlite3
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
