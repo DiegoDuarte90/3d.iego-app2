@@ -665,6 +665,76 @@
       color: var(--primary-soft);
       letter-spacing: 0.5px;
     }
+  
+    .price-switch{
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      flex-wrap: wrap;
+      gap:12px;
+      margin: 6px 0 10px;
+      user-select:none;
+    }
+    .price-label{
+      flex: 0 0 auto;
+      font-size:12px;
+      color: rgba(166,164,201,0.9);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .price-label.active{
+      color: #f7f4ff;
+    }
+    .switch-precio{
+      flex: 0 0 auto;
+      width: 52px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid rgba(152,131,255,0.55);
+      background: rgba(18,19,40,0.9);
+      position: relative;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+    }
+    .switch-precio::after{
+      content:"";
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255, 179, 217, 0.95);
+      position:absolute;
+      top: 50%;
+      left: 3px;
+      transform: translateY(-50%);
+      transition: left .18s ease;
+    }
+    .switch-precio.active{
+      border-color: rgba(255,122,196,0.65);
+    }
+    .switch-precio.active::after{
+      left: 27px;
+    }
+
+    .table-input{
+      width: 100%;
+      max-width: 96px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(152,131,255,0.35);
+      background: rgba(8,8,26,0.65);
+      color: #f7f4ff;
+      outline: none;
+      font-size: 0.9rem;
+    }
+    .table-input:focus{
+      border-color: rgba(255,122,196,0.7);
+      box-shadow: 0 0 0 3px rgba(255,122,196,0.15);
+    }
+    .table-input.name{
+      max-width: 220px;
+    }
+
   </style>
 </head>
 <body>
@@ -798,6 +868,8 @@
                   data-categoria="{{ p.tipo_pieza }}"
                   data-subcategoria="{{ p.subtipo }}"
                   data-precio-sugerido="{{ p.precio|default(0) }}"
+                  data-precio-normal="{{ p.precio|default(0) }}"
+                  data-precio-revendedor="{{ p.precio_revendedor|default(p.precio|default(0)) }}"
                 >
                   {{ p.nombre }} · Stock: {{ p.stock }}
                 </option>
@@ -852,6 +924,11 @@
         <div class="grid-4">
           <div>
             <label class="field-label">Precio x pieza</label>
+            <div class="price-switch">
+              <span id="lblPrecioNormal" class="price-label active">Normal</span>
+              <button type="button" id="switchPrecio" class="switch-precio" aria-label="Cambiar modo de precio"></button>
+              <span id="lblPrecioRev" class="price-label">Revendedor</span>
+            </div>
             <div class="stepper-wrapper">
               <input
                 type="number"
@@ -1045,6 +1122,12 @@
       const fechaEntrega = document.getElementById("fechaEntrega");
       const cantidadPieza = document.getElementById("cantidadPieza");
       const precioPieza = document.getElementById("precioPieza");
+      const switchPrecio = document.getElementById("switchPrecio");
+      const lblPrecioNormal = document.getElementById("lblPrecioNormal");
+      const lblPrecioRev = document.getElementById("lblPrecioRev");
+
+      let modoPrecio = "normal"; // normal | revendedor
+
       const totalPiezaDisplay = document.getElementById("totalPiezaDisplay");
       const agregarPiezaBtn = document.getElementById("agregarPiezaBtn");
 
@@ -1244,6 +1327,46 @@
           `$ ${formatoMoneda(total)}`;
       }
 
+      function obtenerPrecioSugeridoActual() {
+        const selected = piezaSelect.options[piezaSelect.selectedIndex];
+        if (!selected) return 0;
+
+        const normal = Number(selected.dataset.precioNormal || selected.dataset.precioSugerido || 0);
+        const rev = Number(selected.dataset.precioRevendedor || selected.dataset.precioNormal || selected.dataset.precioSugerido || 0);
+
+        return (modoPrecio === "revendedor") ? rev : normal;
+      }
+
+      function aplicarPrecioSugeridoSiCorresponde() {
+        const value = piezaSelect.value;
+        if (!value || value === "custom") return;
+
+        const sugerido = obtenerPrecioSugeridoActual();
+        if (sugerido > 0) {
+          precioPieza.value = Number(sugerido).toFixed(2);
+        }
+      }
+
+      // Toggle precio normal / revendedor (solo afecta el precio sugerido al seleccionar una pieza)
+      if (switchPrecio) {
+        switchPrecio.addEventListener("click", () => {
+          if (modoPrecio === "normal") {
+            modoPrecio = "revendedor";
+            switchPrecio.classList.add("active");
+            lblPrecioNormal && lblPrecioNormal.classList.remove("active");
+            lblPrecioRev && lblPrecioRev.classList.add("active");
+          } else {
+            modoPrecio = "normal";
+            switchPrecio.classList.remove("active");
+            lblPrecioNormal && lblPrecioNormal.classList.add("active");
+            lblPrecioRev && lblPrecioRev.classList.remove("active");
+          }
+          aplicarPrecioSugeridoSiCorresponde();
+          actualizarTotal();
+        });
+      }
+
+
       function chequearStock() {
         const piezaId = piezaSelect.value;
         const cantidad = Number(cantidadPieza.value || 0);
@@ -1325,64 +1448,132 @@
 
       function renderPiezasTable() {
         piezasTableBody.innerHTML = "";
-        let totalEntrega = 0;
-        let totalItems = piezasAgregadas.length;
-        let totalCantidad = 0;
+
+        // Helpers
+        const actualizarResumen = () => {
+          let totalEntrega = 0;
+          let totalCantidad = 0;
+          piezasAgregadas.forEach((it) => {
+            totalEntrega += Number(it.total || 0);
+            totalCantidad += Number(it.cantidad || 0);
+          });
+          resumenItems.textContent = piezasAgregadas.length;
+          resumenCantidad.textContent = totalCantidad;
+          resumenTotal.textContent = `$ ${formatoMoneda(totalEntrega)}`;
+        };
+
+        const textoEstadoPorItem = (it) => {
+          if (it.piezaId === "custom") return "Personalizada · sin stock";
+          const actual = stockPorPieza[it.piezaId] ?? 0;
+          if (actual >= 0) return `Stock ✓ · ${actual} restantes`;
+          return `Stock en negativo (${actual})`;
+        };
 
         piezasAgregadas.forEach((item, index) => {
-          totalEntrega += item.total;
-          totalCantidad += item.cantidad;
-
           const tr = document.createElement("tr");
 
+          // #
           const tdIndex = document.createElement("td");
           const badge = document.createElement("div");
           badge.className = "mini-badge";
           badge.textContent = index + 1;
           tdIndex.appendChild(badge);
 
+          // Pieza (editable si es custom)
           const tdNombre = document.createElement("td");
-          tdNombre.textContent = item.nombrePieza;
-          if (item.categoria || item.subcategoria) {
-            const info = document.createElement("div");
-            info.style.fontSize = "11px";
-            info.style.color = "#a6a4c9";
-            info.textContent = [item.categoria, item.subcategoria]
-              .filter(Boolean)
-              .join(" · ");
-            tdNombre.appendChild(info);
+          if (item.piezaId === "custom") {
+            const inputName = document.createElement("input");
+            inputName.type = "text";
+            inputName.value = item.nombrePieza || "";
+            inputName.className = "table-input name";
+            inputName.placeholder = "Nombre de la pieza";
+            inputName.addEventListener("input", () => {
+              item.nombrePieza = inputName.value;
+            });
+            tdNombre.appendChild(inputName);
+          } else {
+            tdNombre.textContent = item.nombrePieza;
+            if (item.categoria || item.subcategoria) {
+              const info = document.createElement("div");
+              info.style.fontSize = "11px";
+              info.style.color = "#a6a4c9";
+              info.textContent = [item.categoria, item.subcategoria]
+                .filter(Boolean)
+                .join(" · ");
+              tdNombre.appendChild(info);
+            }
           }
 
+          // Cantidad (editable)
           const tdCant = document.createElement("td");
-          tdCant.textContent = item.cantidad;
+          const inputCant = document.createElement("input");
+          inputCant.type = "number";
+          inputCant.min = "1";
+          inputCant.step = "1";
+          inputCant.value = String(item.cantidad ?? 1);
+          inputCant.className = "table-input";
+          tdCant.appendChild(inputCant);
 
+          // Precio (editable)
           const tdPrecio = document.createElement("td");
-          tdPrecio.textContent = `$ ${formatoMoneda(item.precio)}`;
+          const inputPrecio = document.createElement("input");
+          inputPrecio.type = "number";
+          inputPrecio.min = "0";
+          inputPrecio.step = "0.01";
+          inputPrecio.value = String(item.precio ?? 0);
+          inputPrecio.className = "table-input";
+          tdPrecio.appendChild(inputPrecio);
 
+          // Total (se actualiza)
           const tdTotal = document.createElement("td");
-          tdTotal.textContent = `$ ${formatoMoneda(item.total)}`;
+          const totalSpan = document.createElement("span");
+          totalSpan.textContent = `$ ${formatoMoneda(item.total)}`;
+          tdTotal.appendChild(totalSpan);
 
+          // Estado (se actualiza)
           const tdEstado = document.createElement("td");
           const chip = document.createElement("div");
           chip.className = "chip";
           const dot = document.createElement("span");
           dot.className = "chip-dot";
           chip.appendChild(dot);
-
-          let textoEstado = "";
-          if (item.piezaId === "custom") {
-            textoEstado = "Personalizada · sin stock";
-          } else {
-            const actual = stockPorPieza[item.piezaId] ?? 0;
-            if (actual >= 0) {
-              textoEstado = `Stock ✓ · ${actual} restantes`;
-            } else {
-              textoEstado = `Stock en negativo (${actual})`;
-            }
-          }
-          chip.appendChild(document.createTextNode(textoEstado));
+          const estadoText = document.createElement("span");
+          estadoText.textContent = textoEstadoPorItem(item);
+          chip.appendChild(estadoText);
           tdEstado.appendChild(chip);
 
+          // Handlers (actualizan modelo + UI)
+          const recalcularFila = () => {
+            const cant = Math.max(1, parseInt(inputCant.value || "1", 10));
+            const precio = Math.max(0, Number(inputPrecio.value || 0));
+            inputCant.value = String(cant);
+            inputPrecio.value = String(precio);
+
+            item.cantidad = cant;
+            item.precio = precio;
+            item.total = cant * precio;
+
+            totalSpan.textContent = `$ ${formatoMoneda(item.total)}`;
+            estadoText.textContent = textoEstadoPorItem(item);
+            actualizarResumen();
+          };
+
+          inputCant.addEventListener("change", () => {
+            const prev = Number(item.cantidad || 0);
+            const next = Math.max(1, parseInt(inputCant.value || "1", 10));
+            if (item.piezaId && item.piezaId !== "custom") {
+              const delta = next - prev; // + usa más stock, - devuelve stock
+              stockPorPieza[item.piezaId] = (stockPorPieza[item.piezaId] ?? 0) - delta;
+            }
+            recalcularFila();
+            chequearStock();
+          });
+
+          inputPrecio.addEventListener("change", () => {
+            recalcularFila();
+          });
+
+          // Borrar
           const tdBorrar = document.createElement("td");
           const btnDel = document.createElement("button");
           btnDel.type = "button";
@@ -1410,9 +1601,7 @@
           piezasTableBody.appendChild(tr);
         });
 
-        resumenItems.textContent = totalItems;
-        resumenCantidad.textContent = totalCantidad;
-        resumenTotal.textContent = `$ ${formatoMoneda(totalEntrega)}`;
+        actualizarResumen();
       }
 
       // Guardar entrega

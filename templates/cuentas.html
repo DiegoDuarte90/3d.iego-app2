@@ -453,11 +453,15 @@
       align-items: center;
       justify-content: center;
       z-index: 999;
-    }
+    
+      pointer-events: none;
+     }
 
     .modal-backdrop.show {
       display: flex;
-    }
+    
+      pointer-events: auto;
+     }
 
     .modal {
       background: linear-gradient(135deg, #151633, #050411);
@@ -803,6 +807,9 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      // FIX: por si quedó algún modal abierto/overlay activo, lo limpiamos al cargar
+      document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('show'));
+
       const inputFecha = document.getElementById('fecha');
       if (inputFecha && !inputFecha.value) {
         const hoy = new Date().toISOString().split('T')[0];
@@ -963,7 +970,7 @@
 
         <p class="subtitle" style="margin-bottom: 12px; font-size:0.85rem;">
           Registrá los gastos del mes (filamento, repuestos, etc.).
-          Los gastos de filamento no descuentan de la ganancia ni del ayudante.
+          Los gastos marcados como filamento se descuentan del saldo <strong>Para filamento</strong>.
         </p>
 
         <div class="form-row" style="margin-top:8px; margin-bottom:14px;">
@@ -1020,7 +1027,12 @@
                     <td>
                       <div class="actions-cell">
                         <button type="button" class="btn-secondary btn-edit-gasto">Editar</button>
-                        <button type="button" class="btn-delete" onclick="borrarGasto({{ g.id }})">🗑</button>
+
+                        <!-- Fallback robusto: borrado por formulario (funciona aunque el JS se "cuelgue") -->
+                        <form method="POST" action="/api/gastos/borrar" style="display:inline;" onsubmit="return confirm('¿Borrar este gasto?')">
+                          <input type="hidden" name="id" value="{{ g.id }}">
+                          <button type="submit" class="btn-delete">🗑</button>
+                        </form>
                       </div>
                     </td>
                   </tr>
@@ -1043,71 +1055,90 @@
           <div class="month-selector">
             <span>Mes:</span>
 
-            <select id="anio-select" onchange="onMesAnioChange()">
-              {% set anio_actual = mes_seleccionado[0:4] if mes_seleccionado else '' %}
-              {% set anios = [] %}
-              {% for clave in meses_disponibles %}
-                {% set anio_k = clave[0:4] %}
-                {% if anio_k not in anios %}
-                  {% set _ = anios.append(anio_k) %}
-                {% endif %}
-              {% endfor %}
-              {% for a in anios %}
-                <option value="{{ a }}" {% if mes_seleccionado and a == anio_actual %}selected{% endif %}>{{ a }}</option>
+            {# armamos un mapa: { "YYYY": ["12","11",...], ... } #}
+            {% set meses_por_anio = {} %}
+            {% for clave in meses_disponibles %}
+              {% set anio_k = clave[0:4] %}
+              {% set mes_k = clave[5:7] %}
+              {% if anio_k not in meses_por_anio %}
+                {% set _ = meses_por_anio.update({anio_k: []}) %}
+              {% endif %}
+              {% if mes_k not in meses_por_anio[anio_k] %}
+                {% set _ = meses_por_anio[anio_k].append(mes_k) %}
+              {% endif %}
+            {% endfor %}
+
+            {% set anio_actual = mes_seleccionado[0:4] if mes_seleccionado else '' %}
+            {% set mes_actual = mes_seleccionado[5:7] if mes_seleccionado else '' %}
+
+            <select id="anio-select" onchange="onAnioChange()">
+              {% for a in meses_por_anio.keys()|list|sort(reverse=True) %}
+                <option value="{{ a }}" {% if a == anio_actual %}selected{% endif %}>{{ a }}</option>
               {% endfor %}
             </select>
 
-            <select id="mes-select" onchange="onMesAnioChange()">
-              {% if mes_seleccionado %}
-                {% set mes_actual = mes_seleccionado[5:7] %}
-              {% else %}
-                {% set mes_actual = None %}
-              {% endif %}
-
-              {% set meses_por_anio = {} %}
-              {% for clave in meses_disponibles %}
-                {% set anio = clave[0:4] %}
-                {% set mes = clave[5:7] %}
-                {% if anio not in meses_por_anio %}
-                  {% set _ = meses_por_anio.update({anio: []}) %}
-                {% endif %}
-                {% if mes not in meses_por_anio[anio] %}
-                  {% set _ = meses_por_anio[anio].append(mes) %}
-                {% endif %}
-              {% endfor %}
-
-              {% if mes_seleccionado %}
-                {% for m in meses_por_anio[anio_actual] %}
-                  <option value="{{ m }}" {% if m == mes_actual %}selected{% endif %}>
-                    {% if m == '01' %}ENERO
-                    {% elif m == '02' %}FEBRERO
-                    {% elif m == '03' %}MARZO
-                    {% elif m == '04' %}ABRIL
-                    {% elif m == '05' %}MAYO
-                    {% elif m == '06' %}JUNIO
-                    {% elif m == '07' %}JULIO
-                    {% elif m == '08' %}AGOSTO
-                    {% elif m == '09' %}SEPTIEMBRE
-                    {% elif m == '10' %}OCTUBRE
-                    {% elif m == '11' %}NOVIEMBRE
-                    {% elif m == '12' %}DICIEMBRE
-                    {% endif %}
-                  </option>
-                {% endfor %}
-              {% endif %}
-            </select>
+            <select id="mes-select" onchange="onMesChange()"></select>
           </div>
 
           <script>
-          function onMesAnioChange() {
-            const anio = document.getElementById("anio-select").value;
-            const mes = document.getElementById("mes-select").value;
-            const clave = `${anio}-${mes}`;
+          // Meses disponibles por año (por movimientos). Se completa desde Jinja.
+          const MESES_POR_ANIO = {{ meses_por_anio|tojson }};
 
+          const NOMBRES_MESES = {
+            "01":"ENERO","02":"FEBRERO","03":"MARZO","04":"ABRIL","05":"MAYO","06":"JUNIO",
+            "07":"JULIO","08":"AGOSTO","09":"SEPTIEMBRE","10":"OCTUBRE","11":"NOVIEMBRE","12":"DICIEMBRE"
+          };
+
+          function navegarA(anio, mes) {
+            const clave = `${anio}-${mes}`;
             const url = new URL(window.location.href);
             url.searchParams.set("mes", clave);
             window.location.href = url.toString();
           }
+
+          function poblarMeses(anio, mesSeleccionadoPreferido) {
+            const sel = document.getElementById("mes-select");
+            const meses = (MESES_POR_ANIO[anio] || []).slice(); // vienen en orden DESC
+            sel.innerHTML = "";
+
+            // Si por alguna razón el año no tiene meses, mostramos todos (01-12)
+            const lista = meses.length ? meses : ["12","11","10","09","08","07","06","05","04","03","02","01"];
+
+            let elegido = mesSeleccionadoPreferido;
+            if (!lista.includes(elegido)) {
+              // Por defecto: el más reciente del año (primero porque está en DESC)
+              elegido = lista[0];
+            }
+
+            lista.forEach(m => {
+              const opt = document.createElement("option");
+              opt.value = m;
+              opt.textContent = NOMBRES_MESES[m] || m;
+              if (m === elegido) opt.selected = true;
+              sel.appendChild(opt);
+            });
+
+            return elegido;
+          }
+
+          function onAnioChange() {
+            const anio = document.getElementById("anio-select").value;
+            const elegido = poblarMeses(anio, null);
+            navegarA(anio, elegido);
+          }
+
+          function onMesChange() {
+            const anio = document.getElementById("anio-select").value;
+            const mes = document.getElementById("mes-select").value;
+            navegarA(anio, mes);
+          }
+
+          // Inicialización (al cargar)
+          (function initSelector() {
+            const anio = document.getElementById("anio-select").value;
+            const mesActual = "{{ mes_actual }}";
+            poblarMeses(anio, mesActual);
+          })();
           </script>
           {% endif %}
           <div class="badge">
@@ -1143,7 +1174,11 @@
           <div class="kpi-card">
             <div class="kpi-main-label">Para filamento</div>
             <div class="kpi-main-value">
-              ${{ '%.2f'|format(para_filamento_mes or 0) }}
+              ${{ '%.2f'|format(para_filamento_restante or 0) }}
+            </div>
+            <div style="margin-top:6px; font-size:0.78rem; color:var(--text-soft);">
+              Estimado del mes: <strong>${{ '%.2f'|format(para_filamento_mes or 0) }}</strong>
+              · Gastado en filamento: <strong>${{ '%.2f'|format(filamento_gastado_mes or 0) }}</strong>
             </div>
           </div>
         </div>
@@ -1500,7 +1535,7 @@
                       <div class="actions-cell">
                         <button
                           type="button"
-                          class="btn-secondary btn-edit-ayudante"
+                          type="button" class="btn-secondary btn-edit-ayudante"
                           data-id="{{ p.id }}"
                           data-fecha="{{ p.fecha }}"
                           data-monto="{{ '%.2f'|format(p.monto) }}"

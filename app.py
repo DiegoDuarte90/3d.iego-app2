@@ -320,6 +320,9 @@ def cuentas():
     if request.method == "POST":
         form_type = request.form.get("form_type", "pago")
 
+        # Para evitar duplicados al refrescar (PRG: Post/Redirect/Get)
+        redirect_mes = None
+
         # ------------- NUEVO PAGO -------------
         if form_type == "pago":
             fecha_str = request.form.get("fecha") or datetime.now().strftime("%Y-%m-%d")
@@ -392,6 +395,7 @@ def cuentas():
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, r)
             conn.commit()
+            redirect_mes = mes_clave
 
         # ------------- NUEVO GASTO O PAGO AYUDANTE -------------
         elif form_type == "gasto":
@@ -408,6 +412,7 @@ def cuentas():
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (fecha_g, tipo_g, descripcion_g, monto_g, mes_clave_g, es_filamento))
                 conn.commit()
+                redirect_mes = mes_clave_g
 
         # ------------- EDITAR GASTO NORMAL -------------
         elif form_type == "gasto_edit":
@@ -425,6 +430,7 @@ def cuentas():
                     WHERE id = ? AND tipo = 'gasto'
                 """, (fecha_g, descripcion_g, monto_g, mes_clave_g, es_filamento, gasto_id))
                 conn.commit()
+                redirect_mes = mes_clave_g
 
         # ------------- EDITAR PAGO AYUDANTE -------------
         elif form_type == "pago_ayudante_edit":
@@ -441,6 +447,13 @@ def cuentas():
                     WHERE id = ? AND tipo = 'pago_ayudante'
                 """, (fecha_g, descripcion_g, monto_g, mes_clave_g, gasto_id))
                 conn.commit()
+                redirect_mes = mes_clave_g
+
+        # Redirigir luego del POST para evitar re-envío al refrescar
+        conn.close()
+        if redirect_mes:
+            return redirect(url_for('cuentas', mes=redirect_mes))
+        return redirect(url_for('cuentas'))
 
     # ------------------ SELECTOR DE MESES ------------------
     cur.execute("""
@@ -452,11 +465,20 @@ def cuentas():
     filas_meses = cur.fetchall()
     meses_disponibles = [f["mes_clave"] for f in filas_meses]
 
-    mes_param = request.args.get("mes")
-    if mes_param and mes_param in meses_disponibles:
+    # Siempre incluimos el mes/año actual en el selector, aunque no haya movimientos,
+    # y NO queremos que un movimiento futuro nos cambie el mes mostrado por defecto.
+    mes_hoy = datetime.now().strftime("%Y-%m")
+    if mes_hoy not in meses_disponibles:
+        meses_disponibles.append(mes_hoy)
+
+    # Normalizamos (únicos) y ordenamos desc para mantener consistencia
+    meses_disponibles = sorted(set(meses_disponibles), reverse=True)
+
+    mes_param = (request.args.get("mes") or "").strip()
+    if re.match(r"^\d{4}-\d{2}$", mes_param):
         mes_seleccionado = mes_param
     else:
-        mes_seleccionado = meses_disponibles[0] if meses_disponibles else None
+        mes_seleccionado = mes_hoy
 
     meses = OrderedDict()
 
@@ -612,6 +634,19 @@ def cuentas():
     if mes_seleccionado and mes_seleccionado in meses:
         para_filamento_mes = float(meses[mes_seleccionado]["totales"]["costo"] or 0)
 
+    # Gastos de filamento del mes (para descontar del "Para filamento")
+    filamento_gastado_mes = 0.0
+    try:
+        filamento_gastado_mes = sum(
+            float(g.get("monto") or 0)
+            for g in (gastos_mes_list or [])
+            if int(g.get("es_filamento") or 0) == 1
+        )
+    except Exception:
+        filamento_gastado_mes = 0.0
+
+    para_filamento_restante = float(para_filamento_mes or 0) - float(filamento_gastado_mes or 0)
+
     conn.close()
     hoy = datetime.now().strftime("%Y-%m-%d")
 
@@ -626,6 +661,8 @@ def cuentas():
         pagos_ayudante_list=pagos_ayudante_list,
         hoy=hoy,
         para_filamento_mes=para_filamento_mes,
+        filamento_gastado_mes=filamento_gastado_mes,
+        para_filamento_restante=para_filamento_restante,
     )
 
 
@@ -1142,6 +1179,10 @@ def api_movimientos_revendedor(rev_id):
             "saldo_posterior": saldo,
         })
 
+    # Mostrar más nuevo arriba sin romper el cálculo de saldo (se calcula en orden cronológico y luego se invierte)
+    movimientos.reverse()
+
+
     return jsonify({"ok": True, "movimientos": movimientos})
 
 
@@ -1403,15 +1444,24 @@ def api_borrar_entrega():
 @app.route("/api/gastos/borrar", methods=["POST"])
 def api_borrar_gasto():
     try:
-        data = request.get_json(force=True) or {}
+        # Soporta borrado tanto por JSON (fetch) como por formulario (fallback sin JS)
+        data = request.get_json(silent=True) or {}
         gid = data.get("id")
 
         if gid is None:
+            gid = request.form.get("id") or request.args.get("id")
+
+        if gid is None:
+            # Si vino por formulario, devolvemos redirect para volver a la página.
+            if not request.is_json:
+                return redirect(request.referrer or url_for("cuentas"))
             return jsonify({"ok": False, "error": "Falta ID de gasto."}), 200
 
         try:
             gid_int = int(gid)
         except Exception:
+            if not request.is_json:
+                return redirect(request.referrer or url_for("cuentas"))
             return jsonify({"ok": False, "error": "ID de gasto inválido."}), 200
 
         conn = get_conn()
@@ -1422,7 +1472,12 @@ def api_borrar_gasto():
         conn.close()
 
         if borrados == 0:
+            if not request.is_json:
+                return redirect(request.referrer or url_for("cuentas"))
             return jsonify({"ok": False, "error": "No se encontró gasto con ese ID."}), 200
+
+        if not request.is_json:
+            return redirect(request.referrer or url_for("cuentas"))
 
         return jsonify({"ok": True, "borrados": borrados}), 200
 
