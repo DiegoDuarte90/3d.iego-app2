@@ -613,6 +613,14 @@ def cuentas():
         total_gastos = float(row_g["total_gastos"] or 0) if row_g else 0.0
         total_pagos_ayudante = float(row_g["total_pagos_ayudante"] or 0) if row_g else 0.0
 
+        # ------------------ GANANCIA INDIVIDUAL DEL MES ------------------
+        if mes_seleccionado in meses:
+            gi_bruta_mes = float(meses[mes_seleccionado]["totales"]["ganancia_individual"] or 0)
+        else:
+            gi_bruta_mes = 0.0
+
+        gi_neta_mes = gi_bruta_mes - (total_gastos / 2.0)
+
         # ------------------ AYUDANTE PENDIENTE (SALDO GLOBAL) ------------------
         cur.execute("""
             SELECT COALESCE(SUM(ganancia_individual), 0) AS total
@@ -644,8 +652,8 @@ def cuentas():
         resumen_mes = {
             "gastos_mes": total_gastos,
             "pagado_ayudante": total_pagos_ayudante,
-            "gi_bruta": gi_bruta_global,
-            "gi_neta": gi_neta_global,
+            "gi_bruta": gi_bruta_mes,
+            "gi_neta": gi_neta_mes,
             "ayudante": ayudante_pendiente_global,
         }
 
