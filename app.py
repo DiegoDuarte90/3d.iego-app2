@@ -24,6 +24,23 @@ def get_conn():
     return conn
 
 
+def asegurar_columnas_entregas(cur, conn):
+    """
+    Asegura columnas extra para distinguir entrega/devolución.
+    """
+    try:
+        cur.execute("ALTER TABLE entregas ADD COLUMN tipo_movimiento TEXT NOT NULL DEFAULT 'entrega'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cur.execute("ALTER TABLE entregas ADD COLUMN descripcion TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
 def obtener_productos():
     conn = get_conn()
     cur = conn.cursor()
@@ -95,6 +112,11 @@ def dashboard():
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
+    try:
+        asegurar_columnas_entregas(cur, conn)
+    except Exception:
+        pass
+
     # -------- rango mes actual --------
     hoy = datetime.now().date()
     inicio_mes = hoy.replace(day=1)
@@ -128,7 +150,6 @@ def dashboard():
         row_g = cur.fetchone()
         total_gastos = float(row_g["total_gastos"]) if row_g else 0.0
     except sqlite3.OperationalError:
-        # si todavía no existe la tabla/columna, tomamos 0
         total_gastos = 0.0
 
     # 1) GANANCIA DEL MES (BRUTA REAL)
@@ -143,6 +164,7 @@ def dashboard():
         FROM entrega_items ei
         JOIN entregas e ON ei.entrega_id = e.id
         WHERE e.fecha >= ? AND e.fecha < ?
+          AND IFNULL(e.tipo_movimiento, 'entrega') = 'entrega'
         GROUP BY ei.nombre_pieza
         ORDER BY total_cant DESC
         LIMIT 1
@@ -157,6 +179,7 @@ def dashboard():
         JOIN revendedores r ON e.revendedor_id = r.id
         WHERE e.tipo_cliente = 'revendedor'
           AND e.fecha >= ? AND e.fecha < ?
+          AND IFNULL(e.tipo_movimiento, 'entrega') = 'entrega'
         GROUP BY r.id
         ORDER BY total_ventas DESC
         LIMIT 1
@@ -202,6 +225,11 @@ def api_borrar_revendedor_completo():
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
+    try:
+        asegurar_columnas_entregas(cur, conn)
+    except Exception:
+        pass
+
     # Verificar entregas asociadas
     cur.execute("SELECT COUNT(*) AS c FROM entregas WHERE revendedor_id = ?", (rev_id,))
     tiene_entregas = cur.fetchone()["c"]
@@ -240,6 +268,8 @@ def pagina_entregas():
     cur = conn.cursor()
 
     try:
+        asegurar_columnas_entregas(cur, conn)
+
         cur.execute("""
             SELECT
                 id,
@@ -248,7 +278,9 @@ def pagina_entregas():
                 cliente_nombre,
                 revendedor_id,
                 cantidad_total,
-                total
+                total,
+                IFNULL(tipo_movimiento, 'entrega') AS tipo_movimiento,
+                descripcion
             FROM entregas
             ORDER BY fecha DESC, id DESC
             LIMIT 25;
@@ -284,17 +316,17 @@ def cuentas():
         CREATE TABLE IF NOT EXISTS pagos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fecha DATE NOT NULL,
-            tipo_cliente TEXT NOT NULL,              -- 'revendedor' / 'particular'
+            tipo_cliente TEXT NOT NULL,
             revendedor_id INTEGER,
             nombre_particular TEXT,
             descripcion TEXT,
-            categoria_precio TEXT NOT NULL,          -- 'normal' / 'revendedor'
+            categoria_precio TEXT NOT NULL,
             monto REAL NOT NULL,
             division INTEGER NOT NULL,
             costo REAL NOT NULL,
             ganancia REAL NOT NULL,
             ganancia_individual REAL NOT NULL,
-            mes_clave TEXT NOT NULL                  -- 'YYYY-MM'
+            mes_clave TEXT NOT NULL
         );
     """)
 
@@ -302,14 +334,13 @@ def cuentas():
         CREATE TABLE IF NOT EXISTS gastos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fecha DATE NOT NULL,
-            tipo TEXT NOT NULL,                      -- 'gasto' / 'pago_ayudante'
+            tipo TEXT NOT NULL,
             descripcion TEXT,
             monto REAL NOT NULL,
             mes_clave TEXT NOT NULL
         );
     """)
 
-    # columna extra para filamento
     try:
         cur.execute("ALTER TABLE gastos ADD COLUMN es_filamento INTEGER DEFAULT 0")
         conn.commit()
@@ -319,8 +350,6 @@ def cuentas():
     # ------------------ POST ------------------
     if request.method == "POST":
         form_type = request.form.get("form_type", "pago")
-
-        # Para evitar duplicados al refrescar (PRG: Post/Redirect/Get)
         redirect_mes = None
 
         # ------------- NUEVO PAGO -------------
@@ -402,7 +431,7 @@ def cuentas():
             fecha_g = request.form.get("fecha_gasto") or datetime.now().strftime("%Y-%m-%d")
             descripcion_g = (request.form.get("descripcion_gasto") or "").strip()
             monto_g = float(request.form.get("monto_gasto") or 0)
-            tipo_g = request.form.get("tipo_gasto") or "gasto"   # 'gasto' / 'pago_ayudante'
+            tipo_g = request.form.get("tipo_gasto") or "gasto"
             mes_clave_g = fecha_g[:7]
             es_filamento = 1 if request.form.get("es_filamento") in ("1", "on") else 0
 
@@ -449,7 +478,6 @@ def cuentas():
                 conn.commit()
                 redirect_mes = mes_clave_g
 
-        # Redirigir luego del POST para evitar re-envío al refrescar
         conn.close()
         if redirect_mes:
             return redirect(url_for('cuentas', mes=redirect_mes))
@@ -465,13 +493,10 @@ def cuentas():
     filas_meses = cur.fetchall()
     meses_disponibles = [f["mes_clave"] for f in filas_meses]
 
-    # Siempre incluimos el mes/año actual en el selector, aunque no haya movimientos,
-    # y NO queremos que un movimiento futuro nos cambie el mes mostrado por defecto.
     mes_hoy = datetime.now().strftime("%Y-%m")
     if mes_hoy not in meses_disponibles:
         meses_disponibles.append(mes_hoy)
 
-    # Normalizamos (únicos) y ordenamos desc para mantener consistencia
     meses_disponibles = sorted(set(meses_disponibles), reverse=True)
 
     mes_param = (request.args.get("mes") or "").strip()
@@ -568,7 +593,6 @@ def cuentas():
     pagos_ayudante_list = []
 
     if mes_seleccionado:
-        # Totales de gastos (sin filamento) y pagos ayudante
         cur.execute("""
             SELECT
               COALESCE(SUM(CASE
@@ -589,25 +613,42 @@ def cuentas():
         total_gastos = float(row_g["total_gastos"] or 0) if row_g else 0.0
         total_pagos_ayudante = float(row_g["total_pagos_ayudante"] or 0) if row_g else 0.0
 
-        if mes_seleccionado in meses:
-            gi_bruta = meses[mes_seleccionado]["totales"]["ganancia_individual"]
-        else:
-            gi_bruta = 0.0
+        # ------------------ AYUDANTE PENDIENTE (SALDO GLOBAL) ------------------
+        cur.execute("""
+            SELECT COALESCE(SUM(ganancia_individual), 0) AS total
+            FROM pagos
+        """)
+        row_gi = cur.fetchone()
+        gi_bruta_global = float(row_gi["total"] or 0) if row_gi else 0.0
 
-        # gi_bruta ya es (∑montos - ∑costos)/2
-        # gi_neta = gi_bruta - (gastos_sin_filamento / 2)
-        gi_neta = gi_bruta - total_gastos / 2.0
-        ayudante_pendiente = gi_neta - total_pagos_ayudante
+        cur.execute("""
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos
+            WHERE tipo = 'gasto'
+              AND IFNULL(es_filamento, 0) = 0
+        """)
+        row_gg = cur.fetchone()
+        total_gastos_global = float(row_gg["total"] or 0) if row_gg else 0.0
+
+        cur.execute("""
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos
+            WHERE tipo = 'pago_ayudante'
+        """)
+        row_pa = cur.fetchone()
+        total_pagos_ayudante_global = float(row_pa["total"] or 0) if row_pa else 0.0
+
+        gi_neta_global = gi_bruta_global - (total_gastos_global / 2.0)
+        ayudante_pendiente_global = gi_neta_global - total_pagos_ayudante_global
 
         resumen_mes = {
             "gastos_mes": total_gastos,
             "pagado_ayudante": total_pagos_ayudante,
-            "gi_bruta": gi_bruta,
-            "gi_neta": gi_neta,
-            "ayudante": ayudante_pendiente,
+            "gi_bruta": gi_bruta_global,
+            "gi_neta": gi_neta_global,
+            "ayudante": ayudante_pendiente_global,
         }
 
-        # SOLO gastos "normales" (los listamos todos, incluyendo filamento, para verlos)
         cur.execute("""
             SELECT id, fecha, descripcion, tipo, monto, es_filamento
             FROM gastos
@@ -616,7 +657,6 @@ def cuentas():
         """, (mes_seleccionado,))
         gastos_mes_list = [dict(r) for r in cur.fetchall()]
 
-        # Lista de pagos al ayudante (para el popup)
         cur.execute("""
             SELECT id, fecha, descripcion, monto
             FROM gastos
@@ -625,16 +665,32 @@ def cuentas():
         """, (mes_seleccionado,))
         pagos_ayudante_list = [dict(r) for r in cur.fetchall()]
 
-    # Combo de revendedores
     cur.execute("SELECT id, nombre FROM revendedores WHERE activo = 1 ORDER BY nombre;")
     revendedores = cur.fetchall()
 
-    # PARA FILAMENTO = suma de costos del mes (según tu definición)
+    # ------------------ PARA FILAMENTO (SALDO GLOBAL) ------------------
+    cur.execute("""
+        SELECT COALESCE(SUM(costo), 0) as total
+        FROM pagos
+    """)
+    row = cur.fetchone()
+    total_costos_acumulados = float(row["total"] or 0)
+
+    cur.execute("""
+        SELECT COALESCE(SUM(monto), 0) as total
+        FROM gastos
+        WHERE es_filamento = 1
+    """)
+    row = cur.fetchone()
+    total_filamento_acumulado = float(row["total"] or 0)
+
+    para_filamento_restante = total_costos_acumulados - total_filamento_acumulado
+
+    # ------------------ DATOS DEL MES (solo informativos) ------------------
     para_filamento_mes = 0.0
     if mes_seleccionado and mes_seleccionado in meses:
         para_filamento_mes = float(meses[mes_seleccionado]["totales"]["costo"] or 0)
 
-    # Gastos de filamento del mes (para descontar del "Para filamento")
     filamento_gastado_mes = 0.0
     try:
         filamento_gastado_mes = sum(
@@ -644,8 +700,6 @@ def cuentas():
         )
     except Exception:
         filamento_gastado_mes = 0.0
-
-    para_filamento_restante = float(para_filamento_mes or 0) - float(filamento_gastado_mes or 0)
 
     conn.close()
     hoy = datetime.now().strftime("%Y-%m-%d")
@@ -673,13 +727,17 @@ def cuentas():
 @app.route("/api/entregas/<int:entrega_id>", methods=["GET"])
 def api_entrega_detalle(entrega_id):
     """
-    Detalle de entrega en JSON para el popup (revendedores.html)
+    Detalle de entrega o devolución en JSON para popup.
     """
     conn = get_conn()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # Cabecera
+    try:
+        asegurar_columnas_entregas(cur, conn)
+    except Exception:
+        pass
+
     cur.execute("""
         SELECT
             id,
@@ -687,7 +745,10 @@ def api_entrega_detalle(entrega_id):
             tipo_cliente,
             cliente_nombre,
             cantidad_total,
-            total
+            total,
+            revendedor_id,
+            IFNULL(tipo_movimiento, 'entrega') AS tipo_movimiento,
+            descripcion
         FROM entregas
         WHERE id = ?
     """, (entrega_id,))
@@ -697,7 +758,6 @@ def api_entrega_detalle(entrega_id):
         conn.close()
         return jsonify({"ok": False, "error": "Entrega no encontrada"}), 404
 
-    # Ítems
     cur.execute("""
         SELECT
             id,
@@ -744,15 +804,17 @@ def api_crear_entrega():
     cur = conn.cursor()
 
     try:
+        asegurar_columnas_entregas(cur, conn)
+
         # CABECERA
         cur.execute("""
             INSERT INTO entregas (
                 fecha, tipo_cliente, revendedor_id, cliente_nombre,
-                cantidad_total, total
+                cantidad_total, total, tipo_movimiento, descripcion
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, 'entrega', ?)
         """,
-            (fecha, tipo_cliente, revendedor_id, cliente_nombre, cantidad_total, total))
+            (fecha, tipo_cliente, revendedor_id, cliente_nombre, cantidad_total, total, None))
 
         entrega_id = cur.lastrowid
 
@@ -796,6 +858,85 @@ def api_crear_entrega():
         conn.close()
 
     return jsonify({"ok": True, "entrega_id": entrega_id})
+
+
+@app.route("/api/devoluciones", methods=["POST"])
+def api_crear_devolucion():
+    """
+    Registra una devolución monetaria para un revendedor.
+    No toca stock. Solo impacta el saldo como una entrega negativa.
+    """
+    data = request.get_json(force=True) or {}
+
+    try:
+        revendedor_id = int(data.get("revendedor_id") or 0)
+    except Exception:
+        return jsonify({"ok": False, "error": "Revendedor inválido"}), 200
+
+    fecha = (data.get("fecha") or "").strip() or datetime.now().strftime("%Y-%m-%d")
+    descripcion = (data.get("descripcion") or "").strip() or "Devolución"
+    cliente_nombre = (data.get("cliente_nombre") or "").strip()
+    try:
+        monto = float(data.get("monto") or 0)
+    except Exception:
+        return jsonify({"ok": False, "error": "Monto inválido"}), 200
+
+    if revendedor_id <= 0:
+        return jsonify({"ok": False, "error": "Falta seleccionar revendedor"}), 200
+
+    if monto <= 0:
+        return jsonify({"ok": False, "error": "El monto debe ser mayor a 0"}), 200
+
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    try:
+        asegurar_columnas_entregas(cur, conn)
+
+        cur.execute("""
+            SELECT id, nombre
+            FROM revendedores
+            WHERE id = ? AND activo = 1
+        """, (revendedor_id,))
+        rev = cur.fetchone()
+
+        if not rev:
+            conn.close()
+            return jsonify({"ok": False, "error": "Revendedor no encontrado"}), 200
+
+        nombre_cliente = cliente_nombre or rev["nombre"]
+
+        cur.execute("""
+            INSERT INTO entregas (
+                fecha,
+                tipo_cliente,
+                revendedor_id,
+                cliente_nombre,
+                cantidad_total,
+                total,
+                tipo_movimiento,
+                descripcion
+            )
+            VALUES (?, 'revendedor', ?, ?, 0, ?, 'devolucion', ?)
+        """, (
+            fecha,
+            revendedor_id,
+            nombre_cliente,
+            -abs(monto),
+            descripcion
+        ))
+
+        conn.commit()
+        devolucion_id = cur.lastrowid
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"ok": False, "error": f"No se pudo guardar la devolución: {e}"}), 200
+
+    conn.close()
+    return jsonify({"ok": True, "devolucion_id": devolucion_id}), 200
 
 
 # ---------------------------
@@ -927,9 +1068,13 @@ def api_revendedores():
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
+    try:
+        asegurar_columnas_entregas(cur, conn)
+    except Exception:
+        pass
+
     # ------------------- GET: LISTAR -------------------
     if request.method == "GET":
-        # Traemos todos los revendedores activos
         cur.execute("""
             SELECT
                 id,
@@ -951,7 +1096,6 @@ def api_revendedores():
             rev_id = r["id"]
             saldo_base = float(r["saldo_inicial"] or 0)
 
-            # Suma de entregas a este revendedor
             cur.execute("""
                 SELECT COALESCE(SUM(total), 0) AS suma_entregas
                 FROM entregas
@@ -961,7 +1105,6 @@ def api_revendedores():
             row_ent = cur.fetchone()
             suma_entregas = float(row_ent["suma_entregas"] or 0) if row_ent else 0.0
 
-            # Suma de pagos de este revendedor
             cur.execute("""
                 SELECT COALESCE(SUM(monto), 0) AS suma_pagos
                 FROM pagos
@@ -971,7 +1114,6 @@ def api_revendedores():
             row_pag = cur.fetchone()
             suma_pagos = float(row_pag["suma_pagos"] or 0) if row_pag else 0.0
 
-            # saldo real (positivo = nos debe, negativo = a favor)
             saldo_actual = saldo_base + suma_entregas - suma_pagos
 
             d = dict(r)
@@ -982,7 +1124,6 @@ def api_revendedores():
         return jsonify(resultado)
 
     # ------------------- POST: CREAR -------------------
-    # si llegamos acá es porque method == "POST"
     try:
         data = request.get_json(force=True) or {}
     except Exception:
@@ -1025,7 +1166,6 @@ def api_revendedores():
 
     conn.close()
     return jsonify({"ok": True, "id": nuevo_id}), 200
-
 
 
 @app.route("/api/revendedores/<int:rev_id>", methods=["PUT"])
@@ -1086,18 +1226,20 @@ def api_borrar_revendedor(rev_id):
 @app.route("/api/revendedores/<int:rev_id>/movimientos", methods=["GET"])
 def api_movimientos_revendedor(rev_id):
     """
-    Movimientos (entregas + pagos) de un revendedor, con saldo acumulado.
+    Movimientos (entregas + devoluciones + pagos) de un revendedor, con saldo acumulado.
     Entregas suman al saldo (te debe).
+    Devoluciones restan al saldo.
     Pagos restan al saldo.
-    En la tabla mostramos los montos con signo "al revés":
-      - entrega -> monto negativo
-      - pago    -> monto positivo
     """
     conn = get_conn()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # saldo inicial
+    try:
+        asegurar_columnas_entregas(cur, conn)
+    except Exception:
+        pass
+
     cur.execute("SELECT saldo_inicial FROM revendedores WHERE id = ?", (rev_id,))
     row_rev = cur.fetchone()
     if not row_rev:
@@ -1106,13 +1248,15 @@ def api_movimientos_revendedor(rev_id):
 
     saldo = float(row_rev["saldo_inicial"] or 0)
 
-    # Entregas
+    # Entregas / devoluciones
     cur.execute("""
         SELECT
             e.id,
             e.fecha,
             e.cantidad_total,
-            e.total
+            e.total,
+            IFNULL(e.tipo_movimiento, 'entrega') AS tipo_movimiento,
+            e.descripcion
         FROM entregas e
         WHERE e.tipo_cliente = 'revendedor'
           AND e.revendedor_id = ?
@@ -1139,12 +1283,20 @@ def api_movimientos_revendedor(rev_id):
     eventos = []
 
     for e in entregas:
+        tipo_mov = e["tipo_movimiento"] or "entrega"
+        monto_real = float(e["total"] or 0)
+
+        if tipo_mov == "devolucion":
+            desc = e["descripcion"] or f"Devolución #{e['id']}"
+        else:
+            desc = f"Entrega #{e['id']} · {e['cantidad_total']} piezas"
+
         eventos.append({
             "id": e["id"],
-            "tipo": "entrega",
+            "tipo": tipo_mov,
             "fecha": e["fecha"],
-            "descripcion": f"Entrega #{e['id']} · {e['cantidad_total']} piezas",
-            "monto": float(e["total"] or 0),
+            "descripcion": desc,
+            "monto": monto_real,
         })
 
     for p in pagos:
@@ -1154,34 +1306,46 @@ def api_movimientos_revendedor(rev_id):
             "tipo": "pago",
             "fecha": p["fecha"],
             "descripcion": (p["descripcion"] or f"Pago recibido #{p['id']}"),
-            "monto": -abs(monto_pago),  # pagos restan al saldo
+            "monto": -abs(monto_pago),
         })
 
-    # Ordenar por fecha, luego tipo, luego id
-    eventos.sort(key=lambda ev: (ev["fecha"], 0 if ev["tipo"] == "entrega" else 1, ev["id"]))
+    def orden_tipo(t):
+        if t == "entrega":
+            return 0
+        if t == "devolucion":
+            return 1
+        return 2  # pago
+
+    eventos.sort(key=lambda ev: (ev["fecha"], orden_tipo(ev["tipo"]), ev["id"]))
 
     movimientos = []
     for ev in eventos:
-        # saldo real (positivo = nos debe, negativo = a favor)
         saldo += ev["monto"]
 
-        # signo "invertido" para mostrar:
+        # visible:
+        # entrega -> negativo
+        # devolucion -> positivo
+        # pago -> positivo
         if ev["tipo"] == "entrega":
-            total_visible = -ev["monto"]
-        else:  # pago
+            total_visible = -abs(ev["monto"])
+            entrega_id = ev["id"]
+        elif ev["tipo"] == "devolucion":
             total_visible = abs(ev["monto"])
+            entrega_id = ev["id"]
+        else:
+            total_visible = abs(ev["monto"])
+            entrega_id = None
 
         movimientos.append({
-            "entrega_id": ev["id"] if ev["tipo"] == "entrega" else None,
+            "entrega_id": entrega_id,
             "fecha": ev["fecha"],
             "descripcion": ev["descripcion"],
             "total": total_visible,
             "saldo_posterior": saldo,
+            "tipo": ev["tipo"],
         })
 
-    # Mostrar más nuevo arriba sin romper el cálculo de saldo (se calcula en orden cronológico y luego se invierte)
     movimientos.reverse()
-
 
     return jsonify({"ok": True, "movimientos": movimientos})
 
@@ -1195,7 +1359,11 @@ def descargar_pdf_entrega(entrega_id):
     conn = get_conn()
     cur = conn.cursor()
 
-    # Cabecera
+    try:
+        asegurar_columnas_entregas(cur, conn)
+    except Exception:
+        pass
+
     cur.execute("""
         SELECT
             id,
@@ -1203,7 +1371,9 @@ def descargar_pdf_entrega(entrega_id):
             tipo_cliente,
             cliente_nombre,
             cantidad_total,
-            total
+            total,
+            IFNULL(tipo_movimiento, 'entrega') AS tipo_movimiento,
+            descripcion
         FROM entregas
         WHERE id = ?
     """, (entrega_id,))
@@ -1212,7 +1382,10 @@ def descargar_pdf_entrega(entrega_id):
         conn.close()
         return "Entrega no encontrada", 404
 
-    # Ítems
+    if (entrega["tipo_movimiento"] or "entrega") == "devolucion":
+        conn.close()
+        return "Las devoluciones no generan PDF de entrega", 400
+
     cur.execute("""
         SELECT
             nombre_pieza,
@@ -1235,13 +1408,11 @@ def descargar_pdf_entrega(entrega_id):
             "total": it["total"],
         })
 
-    # Limpiar nombre del cliente
     raw_cliente = entrega["cliente_nombre"] or ""
     cliente_limpio = re.sub(r'^\s*\d+\s*[-–.)_]*\s*', '', raw_cliente).strip()
     cliente_limpio = re.sub(r'^\.+', '', cliente_limpio).strip()
     cliente_limpio = re.sub(r'^[^\wÁÉÍÓÚáéíóúñÑ]+', '', cliente_limpio).strip()
 
-    # Carpeta de salida
     output_dir = Path("pdfs")
     output_file = output_dir / f"entrega_{entrega_id}.pdf"
 
@@ -1278,7 +1449,6 @@ def api_pago_detalle_o_editar(pago_id):
             return jsonify({"ok": False, "error": "Pago no encontrado"}), 404
         return jsonify({"ok": True, "pago": dict(row)})
 
-    # PUT: editar pago simple
     data = request.get_json(force=True) or {}
 
     fecha = (data.get("fecha") or "").strip() or datetime.now().strftime("%Y-%m-%d")
@@ -1297,7 +1467,7 @@ def api_pago_detalle_o_editar(pago_id):
             conn.close()
             return jsonify({"ok": False, "error": "revendedor_id inválido"}), 200
         tipo_cliente = "revendedor"
-        nombre_particular = None  # si es revendedor, no guardamos nombre particular
+        nombre_particular = None
 
     try:
         monto = float(data.get("monto") or 0)
@@ -1315,7 +1485,6 @@ def api_pago_detalle_o_editar(pago_id):
 
     mes_clave = fecha[:7] if len(fecha) >= 7 else datetime.now().strftime("%Y-%m")
 
-    # Recalcular costos y ganancias
     costo = monto / division
     ganancia = monto - costo
     ganancia_individual = ganancia / 2.0
@@ -1367,10 +1536,10 @@ def api_pago_detalle_o_editar(pago_id):
 @app.route("/api/entregas/borrar", methods=["POST"])
 def api_borrar_entrega():
     """
-    Borra una entrega:
-      - Restaura el stock de los productos involucrados
-      - Elimina los items de la entrega
-      - Elimina la cabecera de la entrega
+    Borra una entrega o devolución:
+      - Si es entrega real, restaura stock
+      - Elimina items
+      - Elimina cabecera
     """
     try:
         data = request.get_json(force=True) or {}
@@ -1388,40 +1557,55 @@ def api_borrar_entrega():
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        # 1) Traer items de la entrega
+        try:
+            asegurar_columnas_entregas(cur, conn)
+        except Exception:
+            pass
+
         cur.execute("""
-            SELECT producto_id, cantidad
-            FROM entrega_items
-            WHERE entrega_id = ?
+            SELECT IFNULL(tipo_movimiento, 'entrega') AS tipo_movimiento
+            FROM entregas
+            WHERE id = ?
         """, (eid_int,))
-        items = cur.fetchall()
+        cab = cur.fetchone()
 
-        # 2) Restaurar stock
-        for it in items:
-            prod_id = it["producto_id"]
-            cant = it["cantidad"] or 0
+        if not cab:
+            conn.close()
+            return jsonify({"ok": False, "error": "No se encontró entrega con ese ID."}), 200
 
-            if prod_id is None:
-                continue
+        tipo_mov = cab["tipo_movimiento"] or "entrega"
 
-            cur.execute("SELECT stock FROM productos WHERE id = ?", (prod_id,))
-            fila = cur.fetchone()
-            if not fila:
-                continue
-
-            stock_actual = fila["stock"] or 0
-            nuevo_stock = stock_actual + cant
-
+        # Solo restaurar stock si era entrega real
+        if tipo_mov == "entrega":
             cur.execute("""
-                UPDATE productos
-                SET stock = ?, updated_at = datetime('now')
-                WHERE id = ?
-            """, (nuevo_stock, prod_id))
+                SELECT producto_id, cantidad
+                FROM entrega_items
+                WHERE entrega_id = ?
+            """, (eid_int,))
+            items = cur.fetchall()
 
-        # 3) Borrar items de la entrega
+            for it in items:
+                prod_id = it["producto_id"]
+                cant = it["cantidad"] or 0
+
+                if prod_id is None:
+                    continue
+
+                cur.execute("SELECT stock FROM productos WHERE id = ?", (prod_id,))
+                fila = cur.fetchone()
+                if not fila:
+                    continue
+
+                stock_actual = fila["stock"] or 0
+                nuevo_stock = stock_actual + cant
+
+                cur.execute("""
+                    UPDATE productos
+                    SET stock = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                """, (nuevo_stock, prod_id))
+
         cur.execute("DELETE FROM entrega_items WHERE entrega_id = ?", (eid_int,))
-
-        # 4) Borrar cabecera de la entrega
         cur.execute("DELETE FROM entregas WHERE id = ?", (eid_int,))
         borradas = cur.rowcount
 
@@ -1444,7 +1628,6 @@ def api_borrar_entrega():
 @app.route("/api/gastos/borrar", methods=["POST"])
 def api_borrar_gasto():
     try:
-        # Soporta borrado tanto por JSON (fetch) como por formulario (fallback sin JS)
         data = request.get_json(silent=True) or {}
         gid = data.get("id")
 
@@ -1452,7 +1635,6 @@ def api_borrar_gasto():
             gid = request.form.get("id") or request.args.get("id")
 
         if gid is None:
-            # Si vino por formulario, devolvemos redirect para volver a la página.
             if not request.is_json:
                 return redirect(request.referrer or url_for("cuentas"))
             return jsonify({"ok": False, "error": "Falta ID de gasto."}), 200
