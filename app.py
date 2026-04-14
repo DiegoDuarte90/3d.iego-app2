@@ -506,6 +506,7 @@ def cuentas():
         mes_seleccionado = mes_hoy
 
     meses = OrderedDict()
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
 
     # ------------------ PAGOS DEL MES ------------------
     if mes_seleccionado:
@@ -621,11 +622,12 @@ def cuentas():
 
         gi_neta_mes = gi_bruta_mes - (total_gastos / 2.0)
 
-        # ------------------ AYUDANTE PENDIENTE (SALDO GLOBAL) ------------------
+        # ------------------ AYUDANTE PENDIENTE (GLOBAL REAL - HASTA HOY) ------------------
         cur.execute("""
             SELECT COALESCE(SUM(ganancia_individual), 0) AS total
             FROM pagos
-        """)
+            WHERE fecha <= ?
+        """, (hoy_str,))
         row_gi = cur.fetchone()
         gi_bruta_global = float(row_gi["total"] or 0) if row_gi else 0.0
 
@@ -634,7 +636,8 @@ def cuentas():
             FROM gastos
             WHERE tipo = 'gasto'
               AND IFNULL(es_filamento, 0) = 0
-        """)
+              AND fecha <= ?
+        """, (hoy_str,))
         row_gg = cur.fetchone()
         total_gastos_global = float(row_gg["total"] or 0) if row_gg else 0.0
 
@@ -642,7 +645,8 @@ def cuentas():
             SELECT COALESCE(SUM(monto), 0) AS total
             FROM gastos
             WHERE tipo = 'pago_ayudante'
-        """)
+              AND fecha <= ?
+        """, (hoy_str,))
         row_pa = cur.fetchone()
         total_pagos_ayudante_global = float(row_pa["total"] or 0) if row_pa else 0.0
 
@@ -676,23 +680,55 @@ def cuentas():
     cur.execute("SELECT id, nombre FROM revendedores WHERE activo = 1 ORDER BY nombre;")
     revendedores = cur.fetchall()
 
-    # ------------------ PARA FILAMENTO (SALDO GLOBAL) ------------------
+    # ------------------ PARA FILAMENTO (GLOBAL REAL - HASTA HOY) ------------------
     cur.execute("""
         SELECT COALESCE(SUM(costo), 0) as total
         FROM pagos
-    """)
+        WHERE fecha <= ?
+    """, (hoy_str,))
     row = cur.fetchone()
     total_costos_acumulados = float(row["total"] or 0)
 
     cur.execute("""
         SELECT COALESCE(SUM(monto), 0) as total
         FROM gastos
-        WHERE es_filamento = 1
-    """)
+        WHERE tipo = 'gasto'
+          AND IFNULL(es_filamento, 0) = 1
+          AND fecha <= ?
+    """, (hoy_str,))
     row = cur.fetchone()
     total_filamento_acumulado = float(row["total"] or 0)
 
     para_filamento_restante = total_costos_acumulados - total_filamento_acumulado
+
+    # ------------------ NUEVOS BLOQUES GLOBALES PENDIENTES (HASTA QUE LLEGUE LA FECHA) ------------------
+    cur.execute("""
+        SELECT COALESCE(SUM(monto), 0) AS total
+        FROM pagos
+        WHERE fecha > ?
+    """, (hoy_str,))
+    row = cur.fetchone()
+    dinero_pendiente_ingresar = float(row["total"] or 0) if row else 0.0
+
+    cur.execute("""
+        SELECT COALESCE(SUM(monto), 0) AS total
+        FROM gastos
+        WHERE tipo = 'gasto'
+          AND IFNULL(es_filamento, 0) = 0
+          AND fecha > ?
+    """, (hoy_str,))
+    row = cur.fetchone()
+    gastos_pendientes = float(row["total"] or 0) if row else 0.0
+
+    cur.execute("""
+        SELECT COALESCE(SUM(monto), 0) AS total
+        FROM gastos
+        WHERE tipo = 'gasto'
+          AND IFNULL(es_filamento, 0) = 1
+          AND fecha > ?
+    """, (hoy_str,))
+    row = cur.fetchone()
+    gastos_pendientes_filamento = float(row["total"] or 0) if row else 0.0
 
     # ------------------ DATOS DEL MES (solo informativos) ------------------
     para_filamento_mes = 0.0
@@ -710,7 +746,6 @@ def cuentas():
         filamento_gastado_mes = 0.0
 
     conn.close()
-    hoy = datetime.now().strftime("%Y-%m-%d")
 
     return render_template(
         "cuentas.html",
@@ -721,10 +756,13 @@ def cuentas():
         resumen_mes=resumen_mes,
         gastos_mes_list=gastos_mes_list,
         pagos_ayudante_list=pagos_ayudante_list,
-        hoy=hoy,
+        hoy=hoy_str,
         para_filamento_mes=para_filamento_mes,
         filamento_gastado_mes=filamento_gastado_mes,
         para_filamento_restante=para_filamento_restante,
+        dinero_pendiente_ingresar=dinero_pendiente_ingresar,
+        gastos_pendientes=gastos_pendientes,
+        gastos_pendientes_filamento=gastos_pendientes_filamento,
     )
 
 
@@ -1713,7 +1751,56 @@ def api_borrar_pagos():
     except Exception as e:
         return jsonify({"ok": False, "error": f"Error SQLite: {e}"}), 200
 
+# ---------------------------
+# API BORRAR PAGOS AYUDANTE
+# ---------------------------
 
+@app.route("/api/pagos-ayudante/borrar", methods=["POST"])
+def api_borrar_pago_ayudante():
+    try:
+        data = request.get_json(silent=True) or {}
+        gid = data.get("id")
+
+        if gid is None:
+            gid = request.form.get("id") or request.args.get("id")
+
+        if gid is None:
+            if not request.is_json:
+                return redirect(request.referrer or url_for("cuentas"))
+            return jsonify({"ok": False, "error": "Falta ID del pago al ayudante."}), 200
+
+        try:
+            gid_int = int(gid)
+        except Exception:
+            if not request.is_json:
+                return redirect(request.referrer or url_for("cuentas"))
+            return jsonify({"ok": False, "error": "ID de pago al ayudante inválido."}), 200
+
+        conn = get_conn()
+        cur = conn.cursor()
+
+        cur.execute("""
+            DELETE FROM gastos
+            WHERE id = ?
+              AND tipo = 'pago_ayudante'
+        """, (gid_int,))
+        conn.commit()
+        borrados = cur.rowcount
+        conn.close()
+
+        if borrados == 0:
+            if not request.is_json:
+                return redirect(request.referrer or url_for("cuentas"))
+            return jsonify({"ok": False, "error": "No se encontró pago al ayudante con ese ID."}), 200
+
+        if not request.is_json:
+            return redirect(request.referrer or url_for("cuentas"))
+
+        return jsonify({"ok": True, "borrados": borrados}), 200
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Error SQLite: {e}"}), 200
+        
 # ---------------------------
 # MAIN
 # ---------------------------

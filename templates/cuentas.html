@@ -631,7 +631,6 @@
       }
     }
 
-    // NUEVO: borrar pago al ayudante (separado de gastos normales)
     async function borrarPagoAyudante(id) {
       if (!confirm('¿Borrar este pago al ayudante? Esto ajustará el pendiente.')) {
         return;
@@ -807,7 +806,6 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      // FIX: por si quedó algún modal abierto/overlay activo, lo limpiamos al cargar
       document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('show'));
 
       const inputFecha = document.getElementById('fecha');
@@ -844,9 +842,7 @@
       </button>
     </div>
 
-    <!-- FILA SUPERIOR: NUEVO PAGO + GASTOS -->
     <div class="grid">
-      <!-- Card: Nuevo pago -->
       <div class="card">
         <div class="card-header">
           <div class="card-title">Nuevo pago</div>
@@ -958,7 +954,6 @@
         </form>
       </div>
 
-      <!-- Card: Gastos -->
       <div class="card">
         <div class="card-header">
           <div class="card-title">Gastos</div>
@@ -1028,7 +1023,6 @@
                       <div class="actions-cell">
                         <button type="button" class="btn-secondary btn-edit-gasto">Editar</button>
 
-                        <!-- Fallback robusto: borrado por formulario (funciona aunque el JS se "cuelgue") -->
                         <form method="POST" action="/api/gastos/borrar" style="display:inline;" onsubmit="return confirm('¿Borrar este gasto?')">
                           <input type="hidden" name="id" value="{{ g.id }}">
                           <button type="submit" class="btn-delete">🗑</button>
@@ -1046,7 +1040,6 @@
       </div>
     </div>
 
-    <!-- CARD INFERIOR: RESUMEN POR MES -->
     <div class="card card-summary-wide">
       <div class="card-header">
         <div class="card-title">Resumen por mes</div>
@@ -1055,7 +1048,6 @@
           <div class="month-selector">
             <span>Mes:</span>
 
-            {# armamos un mapa: { "YYYY": ["12","11",...], ... } #}
             {% set meses_por_anio = {} %}
             {% for clave in meses_disponibles %}
               {% set anio_k = clave[0:4] %}
@@ -1081,7 +1073,6 @@
           </div>
 
           <script>
-          // Meses disponibles por año (por movimientos). Se completa desde Jinja.
           const MESES_POR_ANIO = {{ meses_por_anio|tojson }};
 
           const NOMBRES_MESES = {
@@ -1098,15 +1089,13 @@
 
           function poblarMeses(anio, mesSeleccionadoPreferido) {
             const sel = document.getElementById("mes-select");
-            const meses = (MESES_POR_ANIO[anio] || []).slice(); // vienen en orden DESC
+            const meses = (MESES_POR_ANIO[anio] || []).slice();
             sel.innerHTML = "";
 
-            // Si por alguna razón el año no tiene meses, mostramos todos (01-12)
             const lista = meses.length ? meses : ["12","11","10","09","08","07","06","05","04","03","02","01"];
 
             let elegido = mesSeleccionadoPreferido;
             if (!lista.includes(elegido)) {
-              // Por defecto: el más reciente del año (primero porque está en DESC)
               elegido = lista[0];
             }
 
@@ -1133,10 +1122,9 @@
             navegarA(anio, mes);
           }
 
-          // Inicialización (al cargar)
           (function initSelector() {
             const anio = document.getElementById("anio-select").value;
-            const mesActual = "{{ mes_actual }}";
+            const mesActual = "{{ mes_seleccionado[5:7] if mes_seleccionado else '' }}";
             poblarMeses(anio, mesActual);
           })();
           </script>
@@ -1179,6 +1167,29 @@
             <div style="margin-top:6px; font-size:0.78rem; color:var(--text-soft);">
               Estimado del mes: <strong>${{ '%.2f'|format(para_filamento_mes or 0) }}</strong>
               · Gastado en filamento: <strong>${{ '%.2f'|format(filamento_gastado_mes or 0) }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-main-label">Dinero pendiente a ingresar</div>
+            <div class="kpi-main-value">
+              ${{ '%.2f'|format(dinero_pendiente_ingresar or 0) }}
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-main-label">Gastos pendientes</div>
+            <div class="kpi-main-value">
+              ${{ '%.2f'|format(gastos_pendientes or 0) }}
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-main-label">Gastos pendientes de filamento</div>
+            <div class="kpi-main-value">
+              ${{ '%.2f'|format(gastos_pendientes_filamento or 0) }}
             </div>
           </div>
         </div>
@@ -1308,7 +1319,6 @@
     </div>
   </div>
 
-  <!-- MODAL: NUEVO GASTO -->
   <div class="modal-backdrop" id="modal-gasto">
     <div class="modal">
       <div class="modal-header">
@@ -1378,7 +1388,6 @@
     </div>
   </div>
 
-  <!-- MODAL: EDITAR GASTO -->
   <div class="modal-backdrop" id="modal-edit-gasto">
     <div class="modal">
       <div class="modal-header">
@@ -1441,7 +1450,6 @@
     </div>
   </div>
 
-  <!-- MODAL: PAGO AYUDANTE (lista + alta) -->
   <div id="modal-pago-ayudante" class="modal-backdrop">
     <div class="modal">
       <div class="modal-header">
@@ -1456,7 +1464,6 @@
           </p>
         {% endif %}
 
-        <!-- Form para nuevo pago al ayudante -->
         <form method="POST">
           <input type="hidden" name="form_type" value="gasto">
           <input type="hidden" name="tipo_gasto" value="pago_ayudante">
@@ -1512,7 +1519,6 @@
           </div>
         </form>
 
-        <!-- Historial de pagos al ayudante -->
         <div style="margin-top:14px;">
           <h3 style="font-size:0.9rem; margin-bottom:6px;">Historial de pagos</h3>
           {% if pagos_ayudante_list and pagos_ayudante_list|length > 0 %}
@@ -1562,7 +1568,6 @@
     </div>
   </div>
 
-  <!-- MODAL: EDITAR PAGO AYUDANTE -->
   <div class="modal-backdrop" id="modal-edit-pago-ayudante">
     <div class="modal">
       <div class="modal-header">
@@ -1619,7 +1624,6 @@
     </div>
   </div>
 
-  <!-- MODAL: EDITAR PAGO (ventas) -->
   <div class="modal-backdrop" id="modal-edit-pago">
     <div class="modal">
       <div class="modal-header">
