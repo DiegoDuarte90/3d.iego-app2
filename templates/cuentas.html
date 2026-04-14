@@ -810,8 +810,11 @@
 
       const inputFecha = document.getElementById('fecha');
       if (inputFecha && !inputFecha.value) {
-        const hoy = new Date().toISOString().split('T')[0];
-        inputFecha.value = hoy;
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        inputFecha.value = `${yyyy}-${mm}-${dd}`;
       }
 
       toggleSplit();
